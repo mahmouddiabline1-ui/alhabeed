@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Check, Copy, Crown, LogIn, Play, RotateCcw, Send, Settings2, Sparkles, Users } from "lucide-react";
 import { io } from "socket.io-client";
 import type { ModeId, Player, Room, Session } from "./types";
+import { LocalGame } from "./LocalGame";
 
 const socket = io(import.meta.env.VITE_SERVER_URL || undefined, { autoConnect: false });
 const MODE_NAMES: Record<ModeId,string> = { habbedha: "هَبِّدها", true_or_bluff: "صح ولا هبد؟", complete_bluff: "كمّل الهبدة" };
@@ -10,7 +11,7 @@ const DEFAULTS = { totalRounds: 9, answerSeconds: 45, voteSeconds: 25, revealSec
 export function App() {
   const [room, setRoom] = useState<Room | null>(null);
   const [session, setSession] = useState<Session | null>(() => readSession());
-  const [screen, setScreen] = useState<"home"|"create"|"join">("home");
+  const [screen, setScreen] = useState<"home"|"create"|"join"|"local">("home");
   const [name, setName] = useState(session?.name ?? "");
   const [code, setCode] = useState(new URLSearchParams(location.search).get("room") ?? "");
   const [answer, setAnswer] = useState("");
@@ -44,6 +45,7 @@ export function App() {
   };
   const emit = (event: string, payload: object) => socket.emit(event, payload);
 
+  if (screen === "local") return <LocalGame onExit={()=>setScreen("home")} />;
   if (!room || !session || !me) return <Home screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} error={error} />;
   return <main className="app-shell">
     <TopBar room={room} me={me} remaining={remaining} />
@@ -66,6 +68,7 @@ function Home(p: any) {
     {p.error && <div className="toast static">{p.error}</div>}
     {p.screen === "home" ? <section className="actions">
       <button className="primary" onClick={() => p.setScreen("create")}><Sparkles/> اعمل قعدة</button>
+      <button className="local-button" onClick={() => p.setScreen("local")}><Play/> جرّب لوكال</button>
       <button className="secondary" onClick={() => p.setScreen("join")}><LogIn/> ادخل بكود</button>
       <p className="tiny">٣–١٠ لاعبين · من أي موبايل</p>
     </section> : <form className="panel form" onSubmit={p.screen === "create" ? p.create : p.join}>

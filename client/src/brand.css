@@ -9,3 +9,24 @@
 .brand-card .slogan {
   margin: 10px 0 36px;
 }
+
+.local-button {
+  border: 2px solid var(--orange);
+  border-radius: 18px;
+  padding: 15px 22px;
+  background: #fff5ed;
+  color: var(--orange);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.local-shell { min-height: 100vh; }
+.icon-button { border: 0; background: #ffffff18; color: white; border-radius: 12px; padding: 8px; display: grid; }
+.progress { height: 6px; background: #dfe5fb; direction: ltr; }
+.progress i { display: block; height: 100%; background: var(--orange); transition: width .3s ease; }
+.category-card i,.question-art{background-image:url('../category-art-v1.png')!important}
+.local-setup{max-width:720px;margin:auto;padding:28px 18px 48px}.local-setup h1{font-size:clamp(2rem,8vw,3.5rem);margin:8px 0 22px}.category-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.category-card{padding:0;overflow:hidden;text-align:right;border:2px solid transparent;border-radius:20px;background:#fff;box-shadow:0 10px 25px #17235918;color:var(--ink)}.category-card.active{border-color:var(--orange);transform:translateY(-2px)}.category-card i,.question-art{display:block;background-image:url('/category-art-v1.png');background-size:300% 200%;background-repeat:no-repeat}.category-card i{height:105px}.category-card b,.category-card span{display:block;padding:0 12px}.category-card b{font-size:1rem;margin-top:10px}.category-card span{font-size:.75rem;color:#737991;padding-bottom:12px}.local-chips{margin:12px 0 18px}.round-picker{display:flex;gap:8px;align-items:center;margin:15px 0 20px}.round-picker span{margin-left:auto;font-weight:800}.round-picker button{width:44px;height:40px;border:1px solid #d8dced;background:white;border-radius:12px;font-weight:900}.round-picker button.active{background:var(--ink);color:white}.question-art{height:150px;border-radius:20px;margin-bottom:18px;box-shadow:inset 0 0 0 1px #ffffff22}@media(min-width:620px){.category-grid{grid-template-columns:repeat(3,1fr)}}
