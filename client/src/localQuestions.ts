@@ -1,7 +1,16 @@
 import type { ModeId } from "./types";
 
 export type CategoryId =
-  "egypt" | "history" | "football" | "screen" | "food" | "science";
+  | "egypt"
+  | "history"
+  | "football"
+  | "screen"
+  | "food"
+  | "science"
+  | "music"
+  | "technology"
+  | "nature"
+  | "world";
 export interface LocalQuestion {
   mode: ModeId;
   category: CategoryId;
@@ -12,7 +21,7 @@ export interface LocalQuestion {
 }
 export const CATEGORIES: Record<
   CategoryId,
-  { name: string; position: string }
+  { name: string; position: string; art?: string; size?: string }
 > = {
   egypt: { name: "مصر والقعدة", position: "0% 0%" },
   history: { name: "تاريخ وغرائب", position: "50% 0%" },
@@ -20,6 +29,30 @@ export const CATEGORIES: Record<
   screen: { name: "سينما وتلفزيون", position: "0% 100%" },
   food: { name: "أكل ومزاج", position: "50% 100%" },
   science: { name: "علوم ومعلومات", position: "100% 100%" },
+  music: {
+    name: "مزيكا وسماع",
+    position: "0% 50%",
+    art: "pack-art-v2.png",
+    size: "400% 100%",
+  },
+  technology: {
+    name: "تكنولوجيا ونت",
+    position: "33.333% 50%",
+    art: "pack-art-v2.png",
+    size: "400% 100%",
+  },
+  nature: {
+    name: "حيوانات وطبيعة",
+    position: "66.666% 50%",
+    art: "pack-art-v2.png",
+    size: "400% 100%",
+  },
+  world: {
+    name: "حول العالم",
+    position: "100% 50%",
+    art: "pack-art-v2.png",
+    size: "400% 100%",
+  },
 };
 const CURATED: LocalQuestion[] = [
   {
@@ -403,7 +436,7 @@ const geography: LocalQuestion[] = COUNTRIES.flatMap((c, i) => {
   return [
     {
       mode: "habbedha",
-      category: "history",
+      category: "world",
       prompt: `ما عاصمة ${c[0]}؟`,
       correct: c[1],
       decoys: [next[1], COUNTRIES[(i + 13) % COUNTRIES.length][1]],
@@ -411,7 +444,7 @@ const geography: LocalQuestion[] = COUNTRIES.flatMap((c, i) => {
     },
     {
       mode: "complete_bluff",
-      category: "history",
+      category: "world",
       prompt: `العملة الرسمية في ${c[0]} هي…`,
       correct: c[2],
       decoys: [next[2], COUNTRIES[(i + 19) % COUNTRIES.length][2]],
@@ -419,7 +452,7 @@ const geography: LocalQuestion[] = COUNTRIES.flatMap((c, i) => {
     },
     {
       mode: "true_or_bluff",
-      category: "history",
+      category: "world",
       prompt: `تقع ${c[0]} في قارة ${i % 2 === 0 ? c[3] : wrongContinent}.`,
       correct: i % 2 === 0 ? "صح" : "هبد",
       decoys: [],
@@ -454,7 +487,7 @@ const elements: LocalQuestion[] = ELEMENTS.flatMap((e, i) => [
 const animals: LocalQuestion[] = ANIMALS.flatMap((a, i) => [
   {
     mode: "habbedha",
-    category: "science",
+    category: "nature",
     prompt: `بماذا يتميز ${a[0]}؟`,
     correct: a[1],
     decoys: [
@@ -465,7 +498,7 @@ const animals: LocalQuestion[] = ANIMALS.flatMap((a, i) => [
   },
   {
     mode: "complete_bluff",
-    category: "science",
+    category: "nature",
     prompt: `معلومة أخرى عن ${a[0]}: …`,
     correct: a[2],
     decoys: [
@@ -476,9 +509,119 @@ const animals: LocalQuestion[] = ANIMALS.flatMap((a, i) => [
   },
 ]);
 
+const MUSIC_FACTS = [
+  ["العود", "آلة وترية", "يُعزف عليه بريشة"],
+  ["القانون", "آلة وترية", "يوضع أفقيًا أثناء العزف"],
+  ["الناي", "آلة نفخ", "يُصنع تقليديًا من القصب"],
+  ["الرق", "آلة إيقاع", "إطار دائري به صنوج"],
+  ["الطبلة", "آلة إيقاع", "يُعزف عليها باليدين"],
+  ["الكمان", "آلة وترية", "يُعزف عليه بقوس"],
+  ["التشيللو", "آلة وترية", "أكبر من الكمان ويُعزف جلوسًا"],
+  ["الفلوت", "آلة نفخ", "يُعزف عليه جانبيًا"],
+  ["الترومبيت", "آلة نفخ نحاسية", "له ثلاثة صمامات غالبًا"],
+  ["الساكسفون", "آلة نفخ", "يستخدم قصبة مفردة"],
+  ["البيانو", "آلة ذات مفاتيح", "تضرب مطارقه أوتارًا داخلية"],
+  ["الأورج", "آلة ذات مفاتيح", "ينتج الصوت إلكترونيًا أو بالأنابيب"],
+  ["الجيتار", "آلة وترية", "له ستة أوتار غالبًا"],
+  ["الهارب", "آلة وترية", "أوتاره مرتبة داخل إطار مثلث"],
+  ["الأكورديون", "آلة ذات منفاخ", "يُعزف بسحب وضغط المنفاخ"],
+  ["الدف", "آلة إيقاع", "إطار يُضرب باليد"],
+  ["الصنج", "آلة إيقاع معدنية", "يتكون من قرص معدني"],
+  ["الكلارينيت", "آلة نفخ خشبية", "يستخدم قصبة مفردة"],
+  ["الأوبوا", "آلة نفخ خشبية", "يستخدم قصبة مزدوجة"],
+  ["الكونترباص", "آلة وترية", "أخفض آلات الوتريات الأوركسترالية صوتًا"],
+  ["الماراكاس", "آلة إيقاع", "تُصدر الصوت عند الرج"],
+  ["الإكسيليفون", "آلة إيقاع نغمية", "يتكون من ألواح تُطرق بمضارب"],
+  ["الترومبون", "آلة نفخ نحاسية", "يغير النغم بأنبوب منزلق"],
+  ["الهارمونيكا", "آلة نفخ", "تُعزف بالنفخ والسحب"],
+  ["السمسمية", "آلة وترية شعبية", "مرتبطة بمدن قناة السويس"],
+] as const;
+const TECH_FACTS = [
+  ["CPU", "وحدة المعالجة المركزية", "تنفيذ تعليمات البرامج"],
+  ["RAM", "ذاكرة الوصول العشوائي", "حفظ البيانات المؤقتة أثناء التشغيل"],
+  ["HTML", "لغة ترميز صفحات الويب", "بناء هيكل الصفحة"],
+  ["CSS", "لغة تنسيق صفحات الويب", "التحكم في شكل الصفحة"],
+  ["HTTP", "بروتوكول نقل النص التشعبي", "تبادل بيانات الويب"],
+  ["URL", "عنوان مورد على الإنترنت", "تحديد مكان صفحة أو ملف"],
+  ["DNS", "نظام أسماء النطاقات", "تحويل اسم الموقع إلى عنوان رقمي"],
+  ["IP", "عنوان بروتوكول الإنترنت", "تمييز جهاز على الشبكة"],
+  ["API", "واجهة برمجة التطبيقات", "ربط البرامج والخدمات"],
+  ["JSON", "صيغة خفيفة لتبادل البيانات", "نقل بيانات منظمة"],
+  ["SQL", "لغة استعلام منظمة", "التعامل مع قواعد البيانات"],
+  ["Git", "نظام تحكم في الإصدارات", "تتبع تغييرات الكود"],
+  ["GPU", "وحدة معالجة الرسوميات", "معالجة الرسومات بالتوازي"],
+  ["SSD", "وحدة تخزين بحالة صلبة", "تخزين البيانات دون أجزاء متحركة"],
+  ["USB", "ناقل تسلسلي عام", "توصيل الأجهزة ونقل البيانات والطاقة"],
+  ["Wi‑Fi", "تقنية شبكة لاسلكية", "ربط الأجهزة محليًا دون كابل"],
+  ["Bluetooth", "اتصال لاسلكي قصير المدى", "ربط الأجهزة القريبة"],
+  ["QR", "رمز استجابة سريعة", "تخزين بيانات قابلة للمسح بالكاميرا"],
+  ["VPN", "شبكة خاصة افتراضية", "إنشاء اتصال مشفر عبر شبكة أخرى"],
+  ["Cloud", "حوسبة عبر خوادم بعيدة", "تشغيل وتخزين الموارد عبر الإنترنت"],
+  ["Algorithm", "سلسلة خطوات لحل مشكلة", "وصف حل قابل للتنفيذ"],
+  ["Database", "مجموعة بيانات منظمة", "حفظ المعلومات واسترجاعها"],
+  ["Firewall", "نظام ترشيح حركة الشبكة", "السماح أو منع الاتصالات"],
+  ["Encryption", "تحويل البيانات لصيغة محمية", "منع قراءتها دون مفتاح"],
+  [
+    "Open Source",
+    "برمجيات متاحة الشفرة المصدرية",
+    "السماح بدراسة الكود وفق رخصته",
+  ],
+] as const;
+
+const music: LocalQuestion[] = MUSIC_FACTS.flatMap((f, i) => [
+  {
+    mode: "habbedha",
+    category: "music",
+    prompt: `إلى أي عائلة تنتمي آلة ${f[0]}؟`,
+    correct: f[1],
+    decoys: [
+      MUSIC_FACTS[(i + 6) % MUSIC_FACTS.length][1],
+      MUSIC_FACTS[(i + 13) % MUSIC_FACTS.length][1],
+    ],
+    explanation: `${f[0]} هي ${f[1]}.`,
+  },
+  {
+    mode: "complete_bluff",
+    category: "music",
+    prompt: `تتميز آلة ${f[0]} بأنها…`,
+    correct: f[2],
+    decoys: [
+      MUSIC_FACTS[(i + 4) % MUSIC_FACTS.length][2],
+      MUSIC_FACTS[(i + 11) % MUSIC_FACTS.length][2],
+    ],
+    explanation: `من خصائص ${f[0]} أنها ${f[2]}.`,
+  },
+]);
+const technology: LocalQuestion[] = TECH_FACTS.flatMap((f, i) => [
+  {
+    mode: "habbedha",
+    category: "technology",
+    prompt: `ماذا يعني أو يصف المصطلح التقني ${f[0]}؟`,
+    correct: f[1],
+    decoys: [
+      TECH_FACTS[(i + 5) % TECH_FACTS.length][1],
+      TECH_FACTS[(i + 12) % TECH_FACTS.length][1],
+    ],
+    explanation: `${f[0]}: ${f[1]}.`,
+  },
+  {
+    mode: "complete_bluff",
+    category: "technology",
+    prompt: `يُستخدم ${f[0]} أساسًا في…`,
+    correct: f[2],
+    decoys: [
+      TECH_FACTS[(i + 7) % TECH_FACTS.length][2],
+      TECH_FACTS[(i + 16) % TECH_FACTS.length][2],
+    ],
+    explanation: `استخدام ${f[0]} الأساسي: ${f[2]}.`,
+  },
+]);
+
 export const LOCAL_QUESTIONS: LocalQuestion[] = [
   ...CURATED,
   ...geography,
   ...elements,
   ...animals,
+  ...music,
+  ...technology,
 ];

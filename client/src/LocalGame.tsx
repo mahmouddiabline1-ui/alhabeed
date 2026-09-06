@@ -34,6 +34,11 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
     [options, setOptions] = useState<Option[]>([]),
     [scores, setScores] = useState({ you: 0, felfel: 0, soso: 0 });
   const q = questions[round];
+  const artStyle = (category: CategoryId) => ({
+    backgroundImage: `url(${import.meta.env.BASE_URL}${CATEGORIES[category].art ?? "category-art-v1.png"})`,
+    backgroundPosition: CATEGORIES[category].position,
+    backgroundSize: CATEGORIES[category].size ?? "300% 200%",
+  });
   const toggle = <T,>(x: T, list: T[], set: (v: T[]) => void) =>
     set(list.includes(x) ? list.filter((v) => v !== x) : [...list, x]);
   const start = () => {
@@ -149,7 +154,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
                 }
                 onClick={() => toggle(c, cats, setCats)}
               >
-                <i style={{ backgroundPosition: CATEGORIES[c].position }} />
+                <i style={artStyle(c)} />
                 <em>{cats.includes(c) ? "✓ متضاف" : "+ ضيف"}</em>
                 <b>{CATEGORIES[c].name}</b>
                 <span>
@@ -161,31 +166,36 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
           <div className="setup-section">
             <h3>طريقة اللعب</h3>
             <div className="chips local-chips">
-            {ALL_MODES.map((m) => (
-              <button
-                key={m}
-                className={modes.includes(m) ? "chip active" : "chip"}
-                onClick={() => toggle(m, modes, setModes)}
-              >
-                {MODE_NAMES[m]}
-              </button>
-            ))}
+              {ALL_MODES.map((m) => (
+                <button
+                  key={m}
+                  className={modes.includes(m) ? "chip active" : "chip"}
+                  onClick={() => toggle(m, modes, setModes)}
+                >
+                  {MODE_NAMES[m]}
+                </button>
+              ))}
             </div>
             <div className="round-picker">
-            <span>عدد الجولات</span>
-            {[6, 9, 12].map((n) => (
-              <button
-                className={roundCount === n ? "active" : ""}
-                onClick={() => setRoundCount(n)}
-                key={n}
-              >
-                {n}
-              </button>
-            ))}
+              <span>عدد الجولات</span>
+              {[6, 9, 12].map((n) => (
+                <button
+                  className={roundCount === n ? "active" : ""}
+                  onClick={() => setRoundCount(n)}
+                  key={n}
+                >
+                  {n}
+                </button>
+              ))}
             </div>
           </div>
           <div className="local-start-bar">
-            <div><b>{cats.length} فئات</b><span>{modes.length} مودات · {roundCount} جولات</span></div>
+            <div>
+              <b>{cats.length} فئات</b>
+              <span>
+                {modes.length} مودات · {roundCount} جولات
+              </span>
+            </div>
             <button
               className="primary"
               disabled={!modes.length || !cats.length}
@@ -228,7 +238,11 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
   return (
     <main className="local-shell">
       <header>
-        <button className="icon-button" onClick={() => setPhase("setup")} aria-label="الرجوع لاختيار الفئات">
+        <button
+          className="icon-button"
+          onClick={() => setPhase("setup")}
+          aria-label="الرجوع لاختيار الفئات"
+        >
           <ArrowRight />
         </button>
         <div className="mini-brand">{CATEGORIES[q.category].name}</div>
@@ -238,10 +252,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
         <i style={{ width: `${((round + 1) / questions.length) * 100}%` }} />
       </div>
       <section className="stage round">
-        <div
-          className="question-art"
-          style={{ backgroundPosition: CATEGORIES[q.category].position }}
-        />
+        <div className="question-art" style={artStyle(q.category)} />
         <div className="round-meta">
           جولة {round + 1} من {questions.length} · {MODE_NAMES[q.mode]}
         </div>
