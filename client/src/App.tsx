@@ -11,7 +11,9 @@ const DEFAULTS = { totalRounds: 9, answerSeconds: 45, voteSeconds: 25, revealSec
 export function App() {
   const [room, setRoom] = useState<Room | null>(null);
   const [session, setSession] = useState<Session | null>(() => readSession());
-  const [screen, setScreen] = useState<"home"|"create"|"join"|"local">("home");
+  const [screen, setScreen] = useState<"home"|"create"|"join"|"local">(
+    new URLSearchParams(location.search).get("local") === "1" ? "local" : "home"
+  );
   const [name, setName] = useState(session?.name ?? "");
   const [code, setCode] = useState(new URLSearchParams(location.search).get("room") ?? "");
   const [answer, setAnswer] = useState("");
