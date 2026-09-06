@@ -1,0 +1,11 @@
+.brand-lockup {
+  display: block;
+  width: min(92vw, 610px);
+  height: auto;
+  margin: 0 auto -16px;
+  mix-blend-mode: multiply;
+}
+
+.brand-card .slogan {
+  margin: 10px 0 36px;
+}
