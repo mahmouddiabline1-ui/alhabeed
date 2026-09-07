@@ -39,6 +39,14 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
     backgroundPosition: CATEGORIES[category].position,
     backgroundSize: CATEGORIES[category].size ?? "300% 200%",
   });
+  const questionArt = (question: LocalQuestion) =>
+    question.image
+      ? {
+          backgroundImage: `url(${import.meta.env.BASE_URL}${question.image.src})`,
+          backgroundPosition: question.image.position,
+          backgroundSize: question.image.size ?? "300% 200%",
+        }
+      : artStyle(question.category);
   const toggle = <T,>(x: T, list: T[], set: (v: T[]) => void) =>
     set(list.includes(x) ? list.filter((v) => v !== x) : [...list, x]);
   const start = () => {
@@ -153,6 +161,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
                   cats.includes(c) ? "category-card active" : "category-card"
                 }
                 onClick={() => toggle(c, cats, setCats)}
+                aria-pressed={cats.includes(c)}
               >
                 <i style={artStyle(c)} />
                 <em>{cats.includes(c) ? "✓ متضاف" : "+ ضيف"}</em>
@@ -171,6 +180,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
                   key={m}
                   className={modes.includes(m) ? "chip active" : "chip"}
                   onClick={() => toggle(m, modes, setModes)}
+                  aria-pressed={modes.includes(m)}
                 >
                   {MODE_NAMES[m]}
                 </button>
@@ -182,6 +192,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
                 <button
                   className={roundCount === n ? "active" : ""}
                   onClick={() => setRoundCount(n)}
+                  aria-pressed={roundCount === n}
                   key={n}
                 >
                   {n}
@@ -251,8 +262,12 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
       <div className="progress">
         <i style={{ width: `${((round + 1) / questions.length) * 100}%` }} />
       </div>
-      <section className="stage round">
-        <div className="question-art" style={artStyle(q.category)} />
+      <section
+        className="stage round"
+        key={`${round}-${phase}`}
+        data-phase={phase}
+      >
+        <div className="question-art" style={questionArt(q)} />
         <div className="round-meta">
           جولة {round + 1} من {questions.length} · {MODE_NAMES[q.mode]}
         </div>
@@ -265,6 +280,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
             }}
           >
             <textarea
+              aria-label="هبدتك"
               autoFocus
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}

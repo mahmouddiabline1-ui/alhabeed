@@ -10,7 +10,9 @@ export type CategoryId =
   | "music"
   | "technology"
   | "nature"
-  | "world";
+  | "world"
+  | "egypt_landmarks"
+  | "world_landmarks";
 export interface LocalQuestion {
   mode: ModeId;
   category: CategoryId;
@@ -18,6 +20,7 @@ export interface LocalQuestion {
   correct: string;
   decoys: string[];
   explanation: string;
+  image?: { src: string; position: string; size?: string };
 }
 export const CATEGORIES: Record<
   CategoryId,
@@ -52,6 +55,18 @@ export const CATEGORIES: Record<
     position: "100% 50%",
     art: "pack-art-v2.png",
     size: "400% 100%",
+  },
+  egypt_landmarks: {
+    name: "معالم مصر",
+    position: "0% 0%",
+    art: "landmarks-egypt-v1.png",
+    size: "300% 200%",
+  },
+  world_landmarks: {
+    name: "معالم العالم",
+    position: "0% 0%",
+    art: "landmarks-world-v1.png",
+    size: "300% 200%",
   },
 };
 const CURATED: LocalQuestion[] = [
@@ -617,6 +632,242 @@ const technology: LocalQuestion[] = TECH_FACTS.flatMap((f, i) => [
   },
 ]);
 
+const landmark = (
+  category: "egypt_landmarks" | "world_landmarks",
+  src: string,
+  position: string,
+  prompt: string,
+  correct: string,
+  decoys: string[],
+  explanation: string,
+): LocalQuestion => ({
+  mode: "habbedha",
+  category,
+  prompt,
+  correct,
+  decoys,
+  explanation,
+  image: { src, position, size: "300% 200%" },
+});
+const landmarks: LocalQuestion[] = [
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v1.png",
+    "0% 0%",
+    "إيه اسم المعلم المصري اللي في الصورة؟",
+    "برج القاهرة",
+    ["برج الجزيرة", "برج العاصمة"],
+    "برج القاهرة قائم على جزيرة الزمالك وافتُتح سنة 1961.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v1.png",
+    "50% 0%",
+    "إيه اسم المبنى المصري اللي في الصورة؟",
+    "مكتبة الإسكندرية",
+    ["دار الأوبرا", "متحف الحضارة"],
+    "مكتبة الإسكندرية الحديثة افتُتحت سنة 2002 قرب موقع المكتبة القديمة.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v1.png",
+    "100% 0%",
+    "القلعة الساحلية دي اسمها إيه؟",
+    "قلعة قايتباي",
+    ["قلعة صلاح الدين", "قلعة العريش"],
+    "بُنيت قلعة قايتباي في الإسكندرية في القرن الخامس عشر.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v1.png",
+    "0% 100%",
+    "الأعمدة دي موجودة فين؟",
+    "معبد الأقصر",
+    ["معبد فيلة", "معبد إدفو"],
+    "يقع معبد الأقصر على الضفة الشرقية لنهر النيل في مدينة الأقصر.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v1.png",
+    "50% 100%",
+    "المعبد المنحوت في الجبل ده اسمه إيه؟",
+    "أبو سمبل",
+    ["الدير البحري", "معبد دندرة"],
+    "معبدا أبو سمبل في النوبة شُيدا في عهد رمسيس الثاني.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v1.png",
+    "100% 100%",
+    "المسجد الظاهر في الصورة اسمه إيه؟",
+    "مسجد محمد علي",
+    ["مسجد السلطان حسن", "مسجد الرفاعي"],
+    "يقع مسجد محمد علي داخل قلعة صلاح الدين بالقاهرة.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v1.png",
+    "0% 0%",
+    "إيه اسم المعلم العالمي ده؟",
+    "برج إيفل",
+    ["برج طوكيو", "برج بلاكبول"],
+    "بُني برج إيفل في باريس لمعرض 1889.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v1.png",
+    "50% 0%",
+    "المبنى التاريخي الدائري ده اسمه إيه؟",
+    "الكولوسيوم",
+    ["البانثيون", "ساحة فيرونا"],
+    "الكولوسيوم مدرج روماني شهير في مدينة روما.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v1.png",
+    "100% 0%",
+    "إيه اسم الضريح الموجود في الصورة؟",
+    "تاج محل",
+    ["قصر الرياح", "المعبد الذهبي"],
+    "تاج محل ضريح من الرخام الأبيض في مدينة أغرا الهندية.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v1.png",
+    "0% 100%",
+    "برج الساعة الشهير ده معروف باسم إيه؟",
+    "بيج بن",
+    ["برج إليزابيث في كندا", "ساعة براغ"],
+    "بيج بن هو الاسم الشائع المرتبط ببرج الساعة في قصر وستمنستر بلندن.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v1.png",
+    "50% 100%",
+    "المبنى ذو الأشرعة البيضاء ده اسمه إيه؟",
+    "دار أوبرا سيدني",
+    ["متحف ملبورن", "مركز سنغافورة للفنون"],
+    "دار أوبرا سيدني من أشهر مباني أستراليا الحديثة.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v1.png",
+    "100% 100%",
+    "التمثال المطل على المدينة ده اسمه إيه؟",
+    "المسيح الفادي",
+    ["تمثال الوحدة", "ملاك الشمال"],
+    "يقف تمثال المسيح الفادي فوق جبل كوركوفادو في ريو دي جانيرو.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v2.png",
+    "0% 0%",
+    "المعلم الأثري المصري ده اسمه إيه؟",
+    "أهرامات الجيزة وأبو الهول",
+    ["هرم سقارة", "معبد الوادي"],
+    "تقع أهرامات الجيزة وتمثال أبو الهول على هضبة الجيزة.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v2.png",
+    "50% 0%",
+    "قاعة الأعمدة الضخمة دي موجودة فين؟",
+    "معبد الكرنك",
+    ["معبد كوم أمبو", "معبد إدفو"],
+    "تضم مجموعة معابد الكرنك في الأقصر قاعة أعمدة شهيرة ضخمة.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v2.png",
+    "100% 0%",
+    "المعبد الموجود على الجزيرة ده اسمه إيه؟",
+    "معبد فيلة",
+    ["معبد إسنا", "معبد دندرة"],
+    "نُقلت آثار فيلة إلى جزيرة أجيليكا لحمايتها من الغرق.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v2.png",
+    "0% 100%",
+    "القصر المميز ده اسمه إيه؟",
+    "قصر البارون إمبان",
+    ["قصر عابدين", "قصر المنتزه"],
+    "يقع قصر البارون إمبان في حي مصر الجديدة بالقاهرة.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v2.png",
+    "50% 100%",
+    "المتحف التاريخي الظاهر في الصورة اسمه إيه؟",
+    "المتحف المصري بالتحرير",
+    ["المتحف القبطي", "متحف الفن الإسلامي"],
+    "افتُتح المتحف المصري بميدان التحرير سنة 1902.",
+  ),
+  landmark(
+    "egypt_landmarks",
+    "landmarks-egypt-v2.png",
+    "100% 100%",
+    "الدير الموجود وسط جبال سيناء اسمه إيه؟",
+    "دير سانت كاترين",
+    ["دير الأنبا أنطونيوس", "دير وادي النطرون"],
+    "يقع دير سانت كاترين عند سفح جبل سيناء.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v2.png",
+    "0% 0%",
+    "التمثال الشهير ده اسمه إيه؟",
+    "تمثال الحرية",
+    ["تمثال الجمهورية", "تمثال كولومبيا"],
+    "يقف تمثال الحرية في ميناء نيويورك منذ القرن التاسع عشر.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v2.png",
+    "50% 0%",
+    "الواجهة المنحوتة في الصخر دي فين؟",
+    "البتراء",
+    ["كابادوكيا", "بعلبك"],
+    "تقع مدينة البتراء الأثرية في الأردن واشتهرت بواجهاتها المنحوتة في الصخر.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v2.png",
+    "100% 0%",
+    "المعلم الممتد فوق الجبال ده اسمه إيه؟",
+    "سور الصين العظيم",
+    ["سور هادريان", "سور برلين"],
+    "يمتد سور الصين العظيم عبر مناطق واسعة في شمال الصين.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v2.png",
+    "0% 100%",
+    "ناطحة السحاب دي اسمها إيه؟",
+    "برج خليفة",
+    ["برج العرب", "برج شنغهاي"],
+    "برج خليفة في دبي هو أعلى مبنى في العالم حاليًا.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v2.png",
+    "50% 100%",
+    "المدينة الجبلية الأثرية دي اسمها إيه؟",
+    "ماتشو بيتشو",
+    ["تيوتيهواكان", "تشيتشن إيتزا"],
+    "ماتشو بيتشو مدينة إنكا أثرية تقع في جبال بيرو.",
+  ),
+  landmark(
+    "world_landmarks",
+    "landmarks-world-v2.png",
+    "100% 100%",
+    "الكنيسة ذات الأبراج المميزة دي اسمها إيه؟",
+    "ساغرادا فاميليا",
+    ["نوتردام", "كاتدرائية ميلانو"],
+    "ساغرادا فاميليا في برشلونة من أشهر أعمال أنطوني غاودي.",
+  ),
+];
+
 export const LOCAL_QUESTIONS: LocalQuestion[] = [
   ...CURATED,
   ...geography,
@@ -624,4 +875,5 @@ export const LOCAL_QUESTIONS: LocalQuestion[] = [
   ...animals,
   ...music,
   ...technology,
+  ...landmarks,
 ];
