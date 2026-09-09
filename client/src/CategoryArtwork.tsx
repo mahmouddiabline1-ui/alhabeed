@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { CATEGORIES, type CategoryId } from "./catalog";
 
-export function CategoryArtwork({ category }: { category: CategoryId }) {
+export function CategoryArtwork({ category, count }: { category: CategoryId; count?: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const target = canvas.current;
@@ -9,12 +9,12 @@ export function CategoryArtwork({ category }: { category: CategoryId }) {
     const config = CATEGORIES[category];
     const image = new Image();
     image.src = `${import.meta.env.BASE_URL}${config.art ?? "category-art-v1.png"}`;
-    image.onload = () => paintCard(target, image, config.position, config.size ?? "300% 200%", config.name);
-  }, [category]);
+    image.onload = () => paintCard(target, image, config.position, config.size ?? "300% 200%", config.name, count);
+  }, [category, count]);
   return <canvas ref={canvas} className="category-artwork" width="600" height="750" aria-hidden="true" />;
 }
 
-function paintCard(canvas:HTMLCanvasElement,image:HTMLImageElement,position:string,size:string,title:string) {
+function paintCard(canvas:HTMLCanvasElement,image:HTMLImageElement,position:string,size:string,title:string,count?:number) {
   const context = canvas.getContext("2d"); if (!context) return;
   const [wide,high] = size.split(" ").map(v => Math.max(1, Math.round(parseFloat(v) / 100)));
   const [px,py] = position.split(" ").map(v => parseFloat(v));
@@ -30,6 +30,11 @@ function paintCard(canvas:HTMLCanvasElement,image:HTMLImageElement,position:stri
   context.fillStyle="#122554"; context.font="800 50px Arial, sans-serif";
   context.textAlign="center"; context.textBaseline="middle"; context.direction="rtl";
   context.fillText(title,300,630,470);
+  if (typeof count === "number") {
+    context.fillStyle="#fffdf8"; roundedRect(context,404,650,124,52,18); context.fill();
+    context.fillStyle="#122554"; context.font="800 24px Arial, sans-serif";
+    context.fillText(`${count} سؤال`,466,676,108);
+  }
 }
 
 function roundedRect(c:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:number){
