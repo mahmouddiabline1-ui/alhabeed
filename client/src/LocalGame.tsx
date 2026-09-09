@@ -199,7 +199,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
                 onClick={() => toggle(c, cats, setCats)}
                 aria-pressed={cats.includes(c)}
               >
-                <CategoryArtwork category={c} count={typeof categoryCounts[c] === "number" ? categoryCounts[c] : undefined} />
+                <CategoryArtwork category={c} />
                 <em>{cats.includes(c) ? "✓ متضاف" : "+ ضيف"}</em>
               </button>
             ))}

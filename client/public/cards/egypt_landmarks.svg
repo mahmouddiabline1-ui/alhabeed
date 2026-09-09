@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750" role="img" aria-label="معالم مصر">
+  <rect width="600" height="750" rx="34" fill="#102354"/>
+  <svg x="14" y="14" width="572" height="722" viewBox="0 0 600 750" preserveAspectRatio="xMidYMid slice"><image href="../landmarks-egypt-v1.png" width="1800" height="1500"/></svg>
+  <rect x="14" y="14" width="572" height="722" rx="26" fill="none" stroke="#fff5d9" stroke-width="8"/>
+  <text x="300" y="590" text-anchor="middle" direction="rtl" font-family="Arial, sans-serif" font-size="48" font-weight="900" fill="#ffd447" stroke="#102354" stroke-width="13" paint-order="stroke" stroke-linejoin="round"><tspan x="300" dy="-29">معالم</tspan><tspan x="300" dy="58">مصر</tspan></text>
+</svg>
