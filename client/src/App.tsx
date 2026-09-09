@@ -11,9 +11,7 @@ const DEFAULTS = { totalRounds: 9, answerSeconds: 45, voteSeconds: 25, revealSec
 export function App() {
   const [room, setRoom] = useState<Room | null>(null);
   const [session, setSession] = useState<Session | null>(() => readSession());
-  const [screen, setScreen] = useState<"home"|"create"|"join"|"local">(
-    new URLSearchParams(location.search).get("local") === "1" ? "local" : "home"
-  );
+  const [screen, setScreenState] = useState<"home"|"create"|"join"|"local">(screenFromUrl);
   const [name, setName] = useState(session?.name ?? "");
   const [code, setCode] = useState(new URLSearchParams(location.search).get("room") ?? "");
   const [answer, setAnswer] = useState("");
@@ -26,12 +24,23 @@ export function App() {
     const onState = (state: Room) => { setRoom(state); setError(""); };
     const onError = (e: {message:string}) => setError(arabicError(e.message));
     socket.on("room:state", onState); socket.on("game:error", onError);
-    if (session) socket.emit("room:reconnect", session, (state: Room) => setRoom(state));
+    if (session?.token) socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => setRoom(state));
     const clock = setInterval(() => setNow(Date.now()), 250);
     return () => { socket.off("room:state", onState); socket.off("game:error", onError); socket.disconnect(); clearInterval(clock); };
   }, []);
 
   useEffect(() => { setAnswer(""); }, [room?.round?.number, room?.round?.phase]);
+  useEffect(() => {
+    const sync = () => setScreenState(screenFromUrl());
+    addEventListener("popstate", sync); addEventListener("hashchange", sync);
+    return () => { removeEventListener("popstate", sync); removeEventListener("hashchange", sync); };
+  }, []);
+
+  const setScreen = (next:"home"|"create"|"join"|"local") => {
+    setScreenState(next);
+    const hash = next === "home" ? "#/" : `#/${next}`;
+    history.pushState({ screen: next }, "", hash);
+  };
 
   const me = session && room ? room.players[session.playerId] : null;
   const isHost = Boolean(me && room?.hostId === me.id);
@@ -45,10 +54,15 @@ export function App() {
     e.preventDefault(); setError("");
     socket.emit("room:join", { name, code: code.trim().toUpperCase() }, (result: {player:{id:string},room:Room}) => saveAndEnter(result, name, setSession, setRoom));
   };
-  const emit = (event: string, payload: object) => socket.emit(event, payload);
+  const emit = (event: string, payload: object, expectedVersion = room?.version) => new Promise<Room>((resolve) => {
+    socket.emit(event, { ...payload, commandId: crypto.randomUUID(), expectedVersion }, (state:Room) => {
+      setRoom(state);
+      resolve(state);
+    });
+  });
 
   if (screen === "local") return <LocalGame onExit={()=>setScreen("home")} />;
-  if (!room || !session || !me) return <Home screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} error={error} />;
+  if (!room || !session || !me) return <Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} error={error} />;
   return <main className="app-shell">
     <TopBar room={room} me={me} remaining={remaining} />
     {error && <div className="toast">{error}</div>}
@@ -97,7 +111,11 @@ function TopBar({room,me,remaining}:{room:Room,me:any,remaining:number}) {
 
 function Lobby({room,session,isHost,settings,setSettings,emit}:any) {
   const copyInvite = () => navigator.clipboard.writeText(`${location.origin}?room=${room.code}`);
-  const update = () => emit("room:settings", {code:room.code,hostId:session.playerId,patch:settings});
+  const update = () => emit("room:settings", {code:room.code,patch:settings});
+  const start = async () => {
+    const updated = await update();
+    await emit("game:start",{code:room.code},updated.version);
+  };
   return <section className="stage lobby"><div className="eyebrow">القعدة جاهزة</div><h2>لمّ صحابك وابدأوا الهبد</h2>
     <button className="invite" onClick={copyInvite}><Copy/> كود القعدة <b>{room.code}</b></button>
     <div className="players">{Object.values(room.players).map((p:any)=><div className={p.connected?"player":"player offline"} key={p.id}><div className="avatar">{p.name[0]}</div><span>{p.name}</span>{room.hostId===p.id&&<Crown size={18}/>}<i>{p.connected?"جاهز":"فاصل"}</i></div>)}</div>
@@ -105,7 +123,7 @@ function Lobby({room,session,isHost,settings,setSettings,emit}:any) {
       <NumberField label="الجولات" value={settings.totalRounds} min={3} max={30} onChange={(v)=>setSettings({...settings,totalRounds:v})}/>
       <NumberField label="وقت الإجابة" value={settings.answerSeconds} min={15} max={180} onChange={(v)=>setSettings({...settings,answerSeconds:v})}/>
       <NumberField label="وقت التصويت" value={settings.voteSeconds} min={10} max={90} onChange={(v)=>setSettings({...settings,voteSeconds:v})}/>
-    </div><button className="secondary small" onClick={update}>حفظ الإعدادات</button><button className="primary" disabled={Object.keys(room.players).length<3||settings.modes.length===0} onClick={()=>{update();setTimeout(()=>emit("game:start",{code:room.code,hostId:session.playerId}),100)}}><Play/> ابدأ اللعب</button></div> : <div className="waiting"><span className="loader"/> مستنيين صاحب القعدة يبدأ…</div>}
+    </div><button className="secondary small" onClick={update}>حفظ الإعدادات</button><button className="primary" disabled={Object.keys(room.players).length<3||settings.modes.length===0} onClick={start}><Play/> ابدأ اللعب</button></div> : <div className="waiting"><span className="loader"/> مستنيين صاحب القعدة يبدأ…</div>}
   </section>;
 }
 
@@ -115,14 +133,14 @@ function AnswerPhase({room,session,answer,setAnswer,emit}:any) {
   const r=room.round; const sent=r.hasSubmitted;
   if(r.mode==="true_or_bluff") return null;
   return <section className="stage round"><div className="round-meta">جولة {r.number} من {room.settings.totalRounds} · {MODE_NAMES[r.mode as ModeId]}</div><h2>{r.prompt}</h2>
-    {sent ? <div className="submitted"><Check/> هبدتك وصلت<br/><small>محدش هيعرف إنها بتاعتك قبل الكشف</small></div> : <form onSubmit={(e)=>{e.preventDefault();emit("round:answer",{code:room.code,playerId:session.playerId,text:answer})}}><textarea autoFocus value={answer} onChange={e=>setAnswer(e.target.value)} placeholder={r.mode==="complete_bluff"?"كمّل الجملة بإجابة مقنعة…":"اكتب إجابة غلط بس تتصدق…"} maxLength={160}/><div className="char-count">{answer.length}/160</div><button className="primary" disabled={!answer.trim()}><Send/> ابعت الهبدة</button></form>}
+    {sent ? <div className="submitted"><Check/> هبدتك وصلت<br/><small>محدش هيعرف إنها بتاعتك قبل الكشف</small></div> : <form onSubmit={(e)=>{e.preventDefault();emit("round:answer",{code:room.code,text:answer})}}><textarea autoFocus value={answer} onChange={e=>setAnswer(e.target.value)} placeholder={r.mode==="complete_bluff"?"كمّل الجملة بإجابة مقنعة…":"اكتب إجابة غلط بس تتصدق…"} maxLength={160}/><div className="char-count">{answer.length}/160</div><button className="primary" disabled={!answer.trim()}><Send/> ابعت الهبدة</button></form>}
   </section>;
 }
 
 function VotePhase({room,session,emit}:any) {
   const r=room.round;
   return <section className="stage round"><div className="round-meta">جولة {r.number} · وقت التصويت</div><h2>{r.prompt}</h2><p>اختار الإجابة الصح — مسموح تختار أي إجابة.</p>
-    {r.hasVoted?<div className="submitted"><Check/> صوتك اتحسب</div>:<div className="options">{r.options.map((o:any,i:number)=><button key={o.id} onClick={()=>emit("round:vote",{code:room.code,playerId:session.playerId,optionId:o.id})}><span>{arabicNumber(i+1)}</span>{o.text}</button>)}</div>}
+    {r.hasVoted?<div className="submitted"><Check/> صوتك اتحسب</div>:<div className="options">{r.options.map((o:any,i:number)=><button key={o.id} onClick={()=>emit("round:vote",{code:room.code,optionId:o.id})}><span>{arabicNumber(i+1)}</span>{o.text}</button>)}</div>}
   </section>;
 }
 
@@ -138,7 +156,12 @@ function Finished({room,session}:any) {
   return <section className="stage finished"><Sparkles className="trophy"/><div className="eyebrow">القعدة خلصت</div><h2>{ranking[0]?.name} كسبها!</h2><div className="ranking">{ranking.map((p,i)=><div className={p.id===session.playerId?"rank me":"rank"} key={p.id}><b>{i+1}</b><span>{p.name}</span><strong>{p.score}</strong></div>)}</div><button className="secondary" onClick={()=>location.reload()}><RotateCcw/> قعدة جديدة</button></section>;
 }
 
-function saveAndEnter(result:any,name:string,setSession:any,setRoom:any){const s={code:result.room.code,playerId:result.player.id,name};localStorage.setItem("alhabeed:session",JSON.stringify(s));setSession(s);setRoom(result.room);history.replaceState(null,"",`?room=${s.code}`)}
+function saveAndEnter(result:any,name:string,setSession:any,setRoom:any){const s={code:result.room.code,playerId:result.player.id,name,token:result.reconnectToken};localStorage.setItem("alhabeed:session",JSON.stringify(s));setSession(s);setRoom(result.room);history.replaceState({screen:"room"},"",`?room=${s.code}#/room/${s.code}`)}
 function readSession():Session|null{try{return JSON.parse(localStorage.getItem("alhabeed:session")||"null")}catch{return null}}
+function screenFromUrl():"home"|"create"|"join"|"local" {
+  const route = location.hash.replace(/^#\/?/, "").split("/")[0];
+  if (route === "create" || route === "join" || route === "local") return route;
+  return new URLSearchParams(location.search).get("local") === "1" ? "local" : "home";
+}
 function arabicNumber(n:number){return String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[Number(d)])}
 function arabicError(message:string){const map:Record<string,string>={"Room not found":"القعدة دي مش موجودة","At least 3 players are required":"لازم ٣ لاعبين على الأقل","Room is full":"القعدة كملت","Player already joined":"أنت موجود بالفعل"};return map[message]??message}

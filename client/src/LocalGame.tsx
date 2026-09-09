@@ -1,12 +1,12 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Check, Home, Send, Sparkles } from "lucide-react";
 import type { ModeId } from "./types";
 import {
   CATEGORIES,
-  LOCAL_QUESTIONS,
   type CategoryId,
   type LocalQuestion,
-} from "./localQuestions";
+} from "./catalog";
+import { CategoryArtwork } from "./CategoryArtwork";
 
 type Phase = "setup" | "answer" | "vote" | "reveal" | "done";
 interface Option {
@@ -22,17 +22,29 @@ const MODE_NAMES: Record<ModeId, string> = {
 };
 const ALL_MODES = Object.keys(MODE_NAMES) as ModeId[],
   ALL_CATS = Object.keys(CATEGORIES) as CategoryId[];
+const LOCAL_SAVE_KEY = "alhabeed:local-game:v2";
+const API_BASE=(import.meta.env.VITE_SERVER_URL??"").replace(/\/$/u,"");
+interface LocalSave {
+  phase: Phase; round: number; questions: LocalQuestion[]; modes: ModeId[];
+  cats: CategoryId[]; roundCount: number; answer: string; options: Option[];
+  scores: { you:number; felfel:number; soso:number };
+}
 
 export function LocalGame({ onExit }: { onExit: () => void }) {
-  const [phase, setPhase] = useState<Phase>("setup"),
-    [round, setRound] = useState(0),
-    [questions, setQuestions] = useState<LocalQuestion[]>([]);
-  const [modes, setModes] = useState<ModeId[]>(ALL_MODES),
-    [cats, setCats] = useState<CategoryId[]>(ALL_CATS),
-    [roundCount, setRoundCount] = useState(9);
-  const [answer, setAnswer] = useState(""),
-    [options, setOptions] = useState<Option[]>([]),
-    [scores, setScores] = useState({ you: 0, felfel: 0, soso: 0 });
+  const [saved] = useState<LocalSave | null>(readLocalSave);
+  const requestedSetup = location.hash === "#/local" || location.hash === "#/local/setup";
+  const [phase, setPhase] = useState<Phase>(requestedSetup ? "setup" : saved?.phase ?? "setup"),
+    [round, setRound] = useState(saved?.round ?? 0),
+    [questions, setQuestions] = useState<LocalQuestion[]>(saved?.questions ?? []);
+  const [modes, setModes] = useState<ModeId[]>(saved?.modes ?? ALL_MODES),
+    [cats, setCats] = useState<CategoryId[]>(saved?.cats ?? ALL_CATS),
+    [roundCount, setRoundCount] = useState(saved?.roundCount ?? 9);
+  const [answer, setAnswer] = useState(saved?.answer ?? ""),
+    [options, setOptions] = useState<Option[]>(saved?.options ?? []),
+    [scores, setScores] = useState(saved?.scores ?? { you: 0, felfel: 0, soso: 0 });
+  const [categoryCounts,setCategoryCounts]=useState<Record<string,number>>({});
+  const [loading,setLoading]=useState(false);
+  const [loadError,setLoadError]=useState("");
   const q = questions[round];
   const artStyle = (category: CategoryId) => ({
     backgroundImage: `url(${import.meta.env.BASE_URL}${CATEGORIES[category].art ?? "category-art-v1.png"})`,
@@ -49,18 +61,33 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
       : artStyle(question.category);
   const toggle = <T,>(x: T, list: T[], set: (v: T[]) => void) =>
     set(list.includes(x) ? list.filter((v) => v !== x) : [...list, x]);
-  const start = () => {
-    const pool = LOCAL_QUESTIONS.filter(
-      (q) => modes.includes(q.mode) && cats.includes(q.category),
-    ).sort(() => Math.random() - 0.5);
-    const picked = pool.slice(0, Math.min(roundCount, pool.length));
+  useEffect(() => {
+    const safePhase = phase !== "setup" && !q ? "setup" : phase;
+    localStorage.setItem(LOCAL_SAVE_KEY, JSON.stringify({phase:safePhase,round,questions,modes,cats,roundCount,answer,options,scores} satisfies LocalSave));
+    const route = safePhase === "setup" ? "#/local/setup" : `#/local/play/${safePhase}/${round + 1}`;
+    history.replaceState({screen:"local",phase:safePhase}, "", route);
+  }, [phase,round,questions,modes,cats,roundCount,answer,options,scores,q]);
+  useEffect(()=>{
+    fetch(`${API_BASE}/api/content/catalog`).then(response=>{
+      if(!response.ok)throw new Error("تعذّر تحميل مكتبة الأسئلة");return response.json();
+    }).then((data:{categories:Array<{id:string;count:number}>})=>setCategoryCounts(Object.fromEntries(data.categories.map(category=>[category.id,category.count])))).catch(()=>setLoadError("السيرفر مش متصل ببنك الأسئلة دلوقتي"));
+  },[]);
+  const start = async () => {
+    setLoading(true);setLoadError("");
+    try {
+      const response=await fetch(`${API_BASE}/api/local/questions`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({modes,categoryIds:cats,count:roundCount})});
+      if(!response.ok)throw new Error("مش لاقيين أسئلة كفاية للاختيارات دي");
+      const data=await response.json() as {questions:LocalQuestion[]};
+      const picked=data.questions;
     setQuestions(picked);
     setRound(0);
     setScores({ you: 0, felfel: 0, soso: 0 });
     if (picked[0]?.mode === "true_or_bluff") {
       setOptions(binary(picked[0]));
       setPhase("vote");
-    } else setPhase("answer");
+      } else setPhase("answer");
+    } catch(error) {setLoadError(error instanceof Error?error.message:"حصلت مشكلة في تحميل الأسئلة");}
+    finally {setLoading(false);}
   };
   const openVote = (submitted: string) => {
     const raw: Option[] = [
@@ -153,6 +180,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
           <p className="setup-intro">
             اختار فئة أو أكتر، وكل قعدة هتطلعلك أسئلة مختلفة من بنك الأسئلة.
           </p>
+          {loadError&&<div className="toast static">{loadError}</div>}
           <div className="category-grid">
             {ALL_CATS.map((c) => (
               <button
@@ -163,11 +191,11 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
                 onClick={() => toggle(c, cats, setCats)}
                 aria-pressed={cats.includes(c)}
               >
-                <i style={artStyle(c)} />
+                <CategoryArtwork category={c} />
                 <em>{cats.includes(c) ? "✓ متضاف" : "+ ضيف"}</em>
-                <b>{CATEGORIES[c].name}</b>
+                <b className="sr-only">{CATEGORIES[c].name}</b>
                 <span>
-                  {LOCAL_QUESTIONS.filter((q) => q.category === c).length} سؤال
+                  {categoryCounts[c]??"—"} سؤال
                 </span>
               </button>
             ))}
@@ -209,10 +237,10 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
             </div>
             <button
               className="primary"
-              disabled={!modes.length || !cats.length}
+              disabled={!modes.length || !cats.length || loading}
               onClick={start}
             >
-              <Sparkles /> ابدأ اللعبة
+              <Sparkles /> {loading?"بنختار أسئلة القعدة…":"ابدأ اللعبة"}
             </button>
           </div>
         </section>
@@ -347,6 +375,13 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
       </section>
     </main>
   );
+}
+function readLocalSave():LocalSave|null {
+  try {
+    const value = JSON.parse(localStorage.getItem(LOCAL_SAVE_KEY) || "null") as LocalSave|null;
+    if (!value || !Array.isArray(value.questions) || !Array.isArray(value.cats) || !Array.isArray(value.modes)) return null;
+    return value;
+  } catch { return null; }
 }
 function binary(q: LocalQuestion): Option[] {
   return [

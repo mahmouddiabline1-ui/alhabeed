@@ -37,6 +37,7 @@ export interface Question {
   prompt: string;
   correctAnswer: string;
   explanation: string;
+  decoys?: string[];
   sourceUrl?: string;
 }
 

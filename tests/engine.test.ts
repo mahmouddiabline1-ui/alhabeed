@@ -113,3 +113,27 @@ test("room constraints and duplicate actions are enforced", () => {
   expectCode(() => engine.submitAnswer(code, "p1", "إجابة ثانية"), "ALREADY_ANSWERED");
   expectCode(() => engine.joinRoom(code, { id: "p4", name: "Late" }), "GAME_STARTED");
 });
+
+test("question selection balances packages while staying random inside a package", () => {
+  const questions = [
+    { id:"a1", packageId:"a", mode:"habbedha" as const, prompt:"a1", correctAnswer:"a", explanation:"a" },
+    { id:"a2", packageId:"a", mode:"habbedha" as const, prompt:"a2", correctAnswer:"a", explanation:"a" },
+    { id:"b1", packageId:"b", mode:"habbedha" as const, prompt:"b1", correctAnswer:"b", explanation:"b" },
+    { id:"b2", packageId:"b", mode:"habbedha" as const, prompt:"b2", correctAnswer:"b", explanation:"b" },
+  ];
+  const bank = new QuestionBank(questions);
+  const first = bank.pick("habbedha", ["a", "b"], new Set(), () => 0);
+  const second = bank.pick("habbedha", ["a", "b"], new Set([first.id]), () => 0);
+  assert.notEqual(first.packageId, second.packageId);
+});
+
+test("local sampling cycles modes, balances packages, and never repeats a question",()=>{
+  const modes=["habbedha","true_or_bluff","complete_bluff"] as const;
+  const questions=modes.flatMap((mode)=>["a","b"].flatMap(packageId=>[1,2,3].map(number=>({id:`${mode}-${packageId}-${number}`,packageId,mode,prompt:"سؤال",correctAnswer:"صح",explanation:"شرح"}))));
+  const picked=new QuestionBank(questions).sample([...modes],["a","b"],9,()=>0);
+  assert.equal(new Set(picked.map(question=>question.id)).size,9);
+  assert.deepEqual(picked.slice(0,3).map(question=>question.mode),[...modes]);
+  const aTotal=picked.filter(question=>question.packageId==="a").length;
+  const bTotal=picked.filter(question=>question.packageId==="b").length;
+  assert.ok(Math.abs(aTotal-bTotal)<=1);
+});

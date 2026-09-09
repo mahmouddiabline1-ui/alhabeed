@@ -6,4 +6,4 @@ export interface Settings { modes: ModeId[]; packageIds: string[]; totalRounds: 
 export interface Option { id: string; text: string; votes: string[]; authorId?: string; isCorrect?: boolean }
 export interface Round { number: number; mode: ModeId; prompt: string; phase: "answering" | "voting" | "reveal"; phaseEndsAt: number; options: Option[]; votes: Record<string,string>; scoreDelta: Record<string,number>; explanation?: string; correctAnswer?: string; hasSubmitted: boolean; hasVoted: boolean }
 export interface Room { code: string; hostId: string; phase: Phase; settings: Settings; players: Record<string,Player>; round: Round | null; version: number }
-export interface Session { code: string; playerId: string; name: string }
+export interface Session { code: string; playerId: string; name: string; token: string }

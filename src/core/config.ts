@@ -2,7 +2,7 @@ import type { RoomSettings } from "./types.js";
 
 export const DEFAULT_SETTINGS: RoomSettings = {
   modes: ["habbedha", "true_or_bluff", "complete_bluff"],
-  packageIds: ["egypt_general"],
+  packageIds: ["egypt", "history", "football", "screen", "food", "science", "music", "technology", "nature", "world", "egypt_landmarks", "world_landmarks"],
   totalRounds: 9,
   answerSeconds: 45,
   voteSeconds: 25,
