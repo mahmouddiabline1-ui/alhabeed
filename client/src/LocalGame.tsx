@@ -40,6 +40,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
   const [modes, setModes] = useState<ModeId[]>(saved?.modes ?? ALL_MODES),
     [cats, setCats] = useState<CategoryId[]>(saved?.cats ?? ALL_CATS),
     [roundCount, setRoundCount] = useState(saved?.roundCount ?? 9);
+  const [character, setCharacter] = useState(0);
   const [answer, setAnswer] = useState(saved?.answer ?? ""),
     [options, setOptions] = useState<Option[]>(saved?.options ?? []),
     [scores, setScores] = useState(saved?.scores ?? { you: 0, felfel: 0, soso: 0 });
@@ -182,6 +183,12 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
             اختار فئة أو أكتر، وكل قعدة هتطلعلك أسئلة مختلفة من بنك الأسئلة.
           </p>
           {loadError&&<div className="toast static">{loadError}</div>}
+          <div className="character-picker" aria-label="اختار شخصيتك">
+            <div className="character-picker-heading"><b>اختار شخصيتك</b><span>دي هويتك في القعدة</span></div>
+            <div className="character-grid">
+              {Array.from({length:12},(_,i)=><button key={i} type="button" className={character===i?"character-choice active":"character-choice"} aria-label={`شخصية ${i+1}`} aria-pressed={character===i} onClick={()=>setCharacter(i)} style={{backgroundPosition:`${(i%4)*33.333}% ${Math.floor(i/4)*50}%`}} />)}
+            </div>
+          </div>
           <div className="category-grid">
             {ALL_CATS.map((c) => (
               <button
