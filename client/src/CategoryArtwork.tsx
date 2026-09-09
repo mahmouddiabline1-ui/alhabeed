@@ -24,16 +24,15 @@ function paintCard(canvas:HTMLCanvasElement,image:HTMLImageElement,position:stri
   context.clearRect(0,0,600,750);
   const scale=Math.max(600/sw,750/sh), dw=sw*scale, dh=sh*scale;
   context.drawImage(image,column*sw,row*sh,sw,sh,(600-dw)/2,(750-dh)/2,dw,dh);
-  context.fillStyle="#fff8e9";
-  roundedRect(context,42,570,516,116,24); context.fill();
-  context.fillStyle="#f05a24"; context.fillRect(72,570,456,8);
-  context.fillStyle="#122554"; context.font="800 50px Arial, sans-serif";
+  context.fillStyle="#ffd447"; context.strokeStyle="#102354"; context.lineWidth=14;
+  context.font="900 50px Arial, sans-serif";
   context.textAlign="center"; context.textBaseline="middle"; context.direction="rtl";
-  context.fillText(title,300,630,470);
+  context.strokeText(title,300,610,500); context.fillText(title,300,610,500);
   if (typeof count === "number") {
-    context.fillStyle="#fffdf8"; roundedRect(context,404,650,124,52,18); context.fill();
+    context.fillStyle="#fffdf8"; context.strokeStyle="#102354"; context.lineWidth=5;
+    roundedRect(context,392,654,148,56,18); context.fill(); context.stroke();
     context.fillStyle="#122554"; context.font="800 24px Arial, sans-serif";
-    context.fillText(`${count} سؤال`,466,676,108);
+    context.fillText(`${count} سؤال`,466,682,130);
   }
 }
 
