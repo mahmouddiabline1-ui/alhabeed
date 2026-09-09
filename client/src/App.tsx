@@ -3,8 +3,9 @@ import { Check, Copy, Crown, LogIn, Play, RotateCcw, Send, Settings2, Sparkles, 
 import { io } from "socket.io-client";
 import type { ModeId, Player, Room, Session } from "./types";
 import { LocalGame } from "./LocalGame";
+import { serverUrl } from "./serverUrl";
 
-const socket = io(import.meta.env.VITE_SERVER_URL || undefined, { autoConnect: false });
+const socket = io(serverUrl || undefined, { autoConnect: false });
 const MODE_NAMES: Record<ModeId,string> = { habbedha: "هَبِّدها", true_or_bluff: "صح ولا هبد؟", complete_bluff: "كمّل الهبدة" };
 const DEFAULTS = { totalRounds: 9, answerSeconds: 45, voteSeconds: 25, revealSeconds: 10 };
 

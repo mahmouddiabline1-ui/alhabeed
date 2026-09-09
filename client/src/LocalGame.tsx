@@ -7,6 +7,7 @@ import {
   type LocalQuestion,
 } from "./catalog";
 import { CategoryArtwork } from "./CategoryArtwork";
+import { serverUrl } from "./serverUrl";
 
 type Phase = "setup" | "answer" | "vote" | "reveal" | "done";
 interface Option {
@@ -23,7 +24,7 @@ const MODE_NAMES: Record<ModeId, string> = {
 const ALL_MODES = Object.keys(MODE_NAMES) as ModeId[],
   ALL_CATS = Object.keys(CATEGORIES) as CategoryId[];
 const LOCAL_SAVE_KEY = "alhabeed:local-game:v2";
-const API_BASE=(import.meta.env.VITE_SERVER_URL??"").replace(/\/$/u,"");
+const API_BASE=serverUrl.replace(/\/$/u,"");
 interface LocalSave {
   phase: Phase; round: number; questions: LocalQuestion[]; modes: ModeId[];
   cats: CategoryId[]; roundCount: number; answer: string; options: Option[];
