@@ -79,6 +79,7 @@ function Home(p: any) {
   return <main className="home">
     <div className="confetti c1"/><div className="confetti c2"/><div className="confetti c3"/>
     <section className="brand-card">
+      <h1 className="sr-only">الهَبِّيد</h1>
       <img className="brand-lockup" src={`${import.meta.env.BASE_URL}logo-concept.png?v=2`} alt="الهَبِّيد" />
       <p className="slogan">لو مش عارفها… <strong>لازم تهبدها</strong></p>
     </section>
