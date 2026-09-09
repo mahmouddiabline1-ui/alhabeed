@@ -19,8 +19,10 @@
 .category-card i, .question-art { display: block; background-image: url('/category-art-v1.png'); background-size: 300% 200%; background-repeat: no-repeat; }
 .category-artwork { display:block; width:100%; height:100%; object-fit:cover; }
 .category-card i { position: absolute; inset: 0; height: 100%; transition: transform 360ms var(--ease-out); }
-.category-card span, .category-card em { position: absolute; z-index: 2; }
-.category-card span:not(.sr-only) { bottom: 12px; right: 12px; padding: 5px 9px; border-radius: 8px; background: var(--cream); color: var(--navy); font-size: 10px; line-height: 1.6; font-weight: 700; }
+.category-card span, .category-card em, .category-card strong { position: absolute; z-index: 2; }
+.category-card::after { content: ""; position: absolute; z-index: 1; inset: 35% 0 0; background: linear-gradient(transparent, #071332d9 76%); pointer-events: none; }
+.category-name { bottom: 39px; right: 12px; left: 12px; color: #fff; font-size: clamp(12px, 2vw, 15px); line-height: 1.6; font-weight: 900; text-shadow: 0 2px 8px #071332; }
+.category-card .category-count { bottom: 12px; right: 12px; padding: 5px 9px; border-radius: 8px; background: var(--cream); color: var(--navy); font-size: 10px; line-height: 1.6; font-weight: 700; }
 .category-card em { font-style: normal; top: 12px; right: 12px; padding: 6px 10px; border-radius: 8px; background: #101f49ed; color: #fff; font-size: 10px; line-height: 1.5; font-weight: 800; border: 1px solid #ffffff26; }
 .category-card.active { border-color: var(--orange); box-shadow: 0 0 0 2px var(--cream), 0 0 0 4px #e8551e90, 0 8px 20px #101f4910; }
 .category-card.active em { background: var(--yellow); color: var(--navy); border-color: var(--yellow); }

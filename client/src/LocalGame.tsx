@@ -194,8 +194,8 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
               >
                 <CategoryArtwork category={c} />
                 <em>{cats.includes(c) ? "✓ متضاف" : "+ ضيف"}</em>
-                <b className="sr-only">{CATEGORIES[c].name}</b>
-                <span>
+                <strong className="category-name">{CATEGORIES[c].name}</strong>
+                <span className="category-count">
                   {categoryCounts[c]??"—"} سؤال
                 </span>
               </button>
