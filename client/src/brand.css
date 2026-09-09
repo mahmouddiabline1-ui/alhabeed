@@ -25,6 +25,20 @@
 .category-card .category-count { bottom: 12px; right: 12px; padding: 5px 9px; border-radius: 8px; background: var(--cream); color: var(--navy); font-size: 10px; line-height: 1.6; font-weight: 700; }
 .category-card em { font-style: normal; top: 12px; right: 12px; padding: 6px 10px; border-radius: 8px; background: #101f49ed; color: #fff; font-size: 10px; line-height: 1.5; font-weight: 800; border: 1px solid #ffffff26; }
 .category-card.active { border-color: var(--orange); box-shadow: 0 0 0 2px var(--cream), 0 0 0 4px #e8551e90, 0 8px 20px #101f4910; }
+.category-card:nth-child(1) { --card-accent: #e85b32; }
+.category-card:nth-child(2) { --card-accent: #b17945; }
+.category-card:nth-child(3) { --card-accent: #2c7be5; }
+.category-card:nth-child(4) { --card-accent: #a84bd4; }
+.category-card:nth-child(5) { --card-accent: #ef9b2d; }
+.category-card:nth-child(6) { --card-accent: #28a879; }
+.category-card:nth-child(7) { --card-accent: #df3d73; }
+.category-card:nth-child(8) { --card-accent: #4b73d8; }
+.category-card:nth-child(9) { --card-accent: #49a86a; }
+.category-card:nth-child(10) { --card-accent: #e0b12f; }
+.category-card:nth-child(11) { --card-accent: #d35d37; }
+.category-card:nth-child(12) { --card-accent: #7a5bd2; }
+.category-card:not(.active) .category-count { border-inline-start: 3px solid var(--card-accent); }
+.category-card.active { border-color: var(--card-accent, var(--orange)); }
 .category-card.active em { background: var(--yellow); color: var(--navy); border-color: var(--yellow); }
 .category-card:focus-visible { outline-offset: 7px; }
 .category-card:active:not(:disabled) { transform: scale(.975); }
