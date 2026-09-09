@@ -25,7 +25,10 @@ export function App() {
     const onState = (state: Room) => { setRoom(state); setError(""); };
     const onError = (e: {message:string}) => setError(arabicError(e.message));
     socket.on("room:state", onState); socket.on("game:error", onError);
-    if (session?.token) socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => setRoom(state));
+    const wantsRoom = location.hash.startsWith("#/room") || new URLSearchParams(location.search).has("room");
+    if (session?.token && wantsRoom) {
+      socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => setRoom(state));
+    }
     const clock = setInterval(() => setNow(Date.now()), 250);
     return () => { socket.off("room:state", onState); socket.off("game:error", onError); socket.disconnect(); clearInterval(clock); };
   }, []);
