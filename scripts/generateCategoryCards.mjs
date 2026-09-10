@@ -21,13 +21,16 @@ for (const [id, title, image, columns, rows, column, row] of cards) {
   void image; void columns; void rows; void column; void row;
   const crop = await readFile(new URL(`../client/public/cards/source/${id}.jpg`, import.meta.url));
   const artwork = `data:image/jpeg;base64,${crop.toString("base64")}`;
-  const label = title.includes(" ") ? title.replace(" ", "\n") : title;
-  const lines = label.split("\n").map((line, index, all) => `<tspan x="300" dy="${index ? 58 : -(all.length - 1) * 29}">${line}</tspan>`).join("");
+  const labelLines = title.split(" ");
+  const fontSize = title.length > 14 ? 76 : 88;
+  const lineHeight = fontSize * 0.9;
+  const lines = labelLines.map((line, index, all) => `<tspan x="300" dy="${index ? lineHeight : -(all.length - 1) * lineHeight / 2}">${line}</tspan>`).join("");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750" role="img" aria-label="${title}">
+  <defs><filter id="title-shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="9" stdDeviation="2" flood-color="#07183e" flood-opacity="0.95"/></filter></defs>
   <rect width="600" height="750" rx="34" fill="#102354"/>
   <image x="14" y="14" width="572" height="722" href="${artwork}" preserveAspectRatio="xMidYMid slice"/>
   <rect x="14" y="14" width="572" height="722" rx="26" fill="none" stroke="#fff5d9" stroke-width="8"/>
-  <text x="300" y="590" text-anchor="middle" direction="rtl" font-family="Arial, sans-serif" font-size="48" font-weight="900" fill="#ffd447" stroke="#102354" stroke-width="13" paint-order="stroke" stroke-linejoin="round">${lines}</text>
+  <text x="300" y="390" text-anchor="middle" direction="rtl" font-family="Tahoma, Arial, sans-serif" font-size="${fontSize}" font-weight="900" fill="#ffd447" stroke="#102354" stroke-width="24" paint-order="stroke" stroke-linejoin="round" filter="url(#title-shadow)">${lines}</text>
 </svg>`;
   await writeFile(new URL(`${id}.svg`, destination), svg);
 }
