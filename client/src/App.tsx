@@ -1,11 +1,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, Copy, Crown, LogIn, Play, RotateCcw, Send, Settings2, Sparkles, Users } from "lucide-react";
+import { Check, Copy, Crown, LogIn, Play, RotateCcw, Send, Settings2, Sparkles, UserRound, Users } from "lucide-react";
 import { io } from "socket.io-client";
 import type { ModeId, Player, Room, Session } from "./types";
 import { LocalGame } from "./LocalGame";
 import { CategoryLibrary, DEFAULT_CATEGORY_IDS } from "./CategoryLibrary";
 import { CATEGORIES, type CategoryId } from "./catalog";
 import { serverUrl } from "./serverUrl";
+import { createProfile, logoutAll, restoreProfile, updateProfile, type CharacterId, type Profile } from "./identityClient";
+import { ProfilePanel } from "./ProfilePanel";
 
 const socket = io(serverUrl || undefined, { autoConnect: false });
 const MODE_NAMES: Record<ModeId,string> = { habbedha: "هَبِّدها", true_or_bluff: "صح ولا هبد؟", complete_bluff: "كمّل الهبدة" };
@@ -22,6 +24,12 @@ export function App() {
   const [availableCategories, setAvailableCategories] = useState<CategoryId[]>(DEFAULT_CATEGORY_IDS);
   const [now, setNow] = useState(Date.now());
   const [settings, setSettings] = useState({ ...DEFAULTS, modes: ["habbedha","true_or_bluff","complete_bluff"] as ModeId[] });
+  const [profile,setProfile]=useState<Profile|null>(null);
+  const [profileOpen,setProfileOpen]=useState(false);
+  const [profileBusy,setProfileBusy]=useState(false);
+  const [profileError,setProfileError]=useState("");
+
+  useEffect(()=>{let active=true;restoreProfile().then(value=>{if(!active)return;setProfile(value);if(value)setName(current=>current||value.displayName);});return()=>{active=false;};},[]);
 
   useEffect(() => {
     socket.connect();
@@ -92,8 +100,11 @@ export function App() {
     });
   });
 
-  if (screen === "local") return <LocalGame onExit={()=>setScreen("home")} />;
-  if (!room || !session || !me) return <Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} />;
+  const saveProfile=async(displayName:string,character:CharacterId)=>{setProfileBusy(true);setProfileError("");try{const value=profile?await updateProfile(displayName,character):await createProfile(displayName,character);setProfile(value);setName(value.displayName);setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"حصلت مشكلة في حفظ البروفايل");}finally{setProfileBusy(false);}};
+  const signOut=async()=>{setProfileBusy(true);setProfileError("");try{await logoutAll();setProfile(null);setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"تعذّر تسجيل الخروج");}finally{setProfileBusy(false);}};
+  const profilePanel=<ProfilePanel open={profileOpen} profile={profile} busy={profileBusy} error={profileError} onClose={()=>{setProfileOpen(false);setProfileError("");}} onSave={saveProfile} onLogout={signOut}/>;
+  if (screen === "local") return <><LocalGame onExit={()=>setScreen("home")} />{profilePanel}</>;
+  if (!room || !session || !me) return <><Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />{profilePanel}</>;
   return <main className="app-shell">
     <TopBar room={room} me={me} remaining={remaining} />
     {error && <div className="toast">{error}</div>}
@@ -102,11 +113,13 @@ export function App() {
     {room.phase === "voting" && room.round && <VotePhase room={room} session={session} emit={emit} />}
     {room.phase === "reveal" && room.round && <Reveal room={room} session={session} />}
     {room.phase === "finished" && <Finished room={room} session={session} />}
+    {profilePanel}
   </main>;
 }
 
 function Home(p: any) {
   return <main className="home">
+    <button type="button" className="profile-entry" onClick={p.openProfile} aria-label={p.profile?"فتح البروفايل":"إنشاء بروفايل"}><span className={p.profile?"profile-entry-avatar has-character":"profile-entry-avatar"} style={p.profile?characterStyle(p.profile.selectedCharacterId):undefined}>{!p.profile&&<UserRound/>}</span><span><b>{p.profile?.displayName??"البروفايل"}</b><small>{p.profile?"تعديل الاسم والشخصية":"احفظ اسمك وشخصيتك"}</small></span></button>
     <div className="confetti c1"/><div className="confetti c2"/><div className="confetti c3"/>
     <section className="brand-card">
       <h1 className="sr-only">الهَبِّيد</h1>
@@ -206,3 +219,5 @@ function screenFromUrl():"home"|"create"|"join"|"local" {
 }
 function arabicNumber(n:number){return String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[Number(d)])}
 function arabicError(message:string){const map:Record<string,string>={"Room not found":"القعدة دي مش موجودة","At least 3 players are required":"لازم ٣ لاعبين على الأقل","Room is full":"القعدة كملت","Player already joined":"أنت موجود بالفعل"};return map[message]??message}
+function characterStyle(id:CharacterId){const index=Number(id.split("-")[1])-1;return {backgroundPosition:`${(index%4)*33.333}% ${Math.floor(index/4)*50}%`};}
+function arabicIdentityError(message:string){if(message==="NO_ACCESS_TOKEN")return "الجلسة انتهت — افتح البروفايل وسجّل من جديد";if(message.includes("validation"))return "راجع الاسم والشخصية وحاول تاني";if(message.includes("fetch")||message.includes("الاتصال"))return "السيرفر مش متاح دلوقتي، حاول كمان شوية";return message;}

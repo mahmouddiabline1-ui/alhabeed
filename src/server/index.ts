@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import { Server as SocketServer } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { createClient } from "redis";
+import { randomBytes } from "node:crypto";
 import type { ZodType } from "zod";
 import { GameEngine } from "../core/engine.js";
 import { GameError } from "../core/errors.js";
@@ -23,7 +24,12 @@ import { CommandGate } from "./commandGate.js";
 import { allowedOrigins, originAllowed, SocketRateLimiter } from "./security.js";
 import { loadConfig } from "./config.js";
 import { MetricsRegistry } from "../observability/metrics.js";
-import { z } from "zod";
+import { z, ZodError } from "zod";
+import { AccessTokenService } from "../identity/accessTokens.js";
+import { IdentityService, InMemoryProfileRepository } from "../identity/profiles.js";
+import { InMemorySessionRepository, SessionService } from "../identity/sessions.js";
+import { PostgresProfileRepository, PostgresSessionRepository } from "../persistence/postgresIdentityRepository.js";
+import { readCookie, refreshCookie, refreshCookieName } from "./authHttp.js";
 
 const config=loadConfig();
 const metrics=new MetricsRegistry();
@@ -45,6 +51,7 @@ if (existsSync(clientDist)) {
 }
 const io = new SocketServer(app.server, { cors: { origin: corsOrigin, credentials: true }, maxHttpBufferSize: 16 * 1024 });
 const sql=config.databaseUrl ? openPostgres(config.databaseUrl) : null;
+const appSecret=config.sessionSecret??randomBytes(32).toString("hex");
 const redis=config.redisUrl ? createClient({url:config.redisUrl}) : null;
 const redisSub=redis?.duplicate() ?? null;
 if(redis&&redisSub){await Promise.all([redis.connect(),redisSub.connect()]);io.adapter(createAdapter(redis,redisSub));}
@@ -52,7 +59,10 @@ const roomRepository=redis ? new RedisRoomRepository(redis) : sql ? new Postgres
 const databaseQuestions=sql ? await loadPublishedQuestions(sql) : [];
 if(config.environment==="production"&&!databaseQuestions.length)throw new Error("Production requires published questions in PostgreSQL");
 const service = new GameService(new GameEngine(new QuestionBank(databaseQuestions.length?databaseQuestions:seedQuestions)), roomRepository);
-const guestTokens = new GuestTokenService(config.sessionSecret);
+const guestTokens = new GuestTokenService(appSecret);
+const sessionService=new SessionService(sql?new PostgresSessionRepository(sql):new InMemorySessionRepository());
+const accessTokens=new AccessTokenService(appSecret);
+const identityService=new IdentityService(sql?new PostgresProfileRepository(sql):new InMemoryProfileRepository(),sessionService,accessTokens);
 const commandGate = new CommandGate();
 const socketRateLimiter = new SocketRateLimiter();
 await service.initialize();
@@ -60,7 +70,11 @@ if (sql) app.addHook("onClose",async()=>{ await sql.end({timeout:5}); });
 if (redis&&redisSub) app.addHook("onClose",async()=>{ await Promise.all([redis.quit(),redisSub.quit()]); });
 
 app.setErrorHandler((error, _request, reply) => {
-  if (error instanceof GameError) return reply.status(400).send({ error: error.code, message: error.message });
+  if(error instanceof ZodError)return reply.status(400).send({error:"INVALID_REQUEST",message:"Request validation failed"});
+  if (error instanceof GameError) {
+    const status=error.code==="INVALID_ACCESS_TOKEN"||error.code.includes("REFRESH_TOKEN")?401:error.code==="PROFILE_NOT_FOUND"?404:400;
+    return reply.status(status).send({ error: error.code, message: error.message });
+  }
   app.log.error(error); return reply.status(500).send({ error: "INTERNAL_ERROR" });
 });
 app.get("/health", async () => ({ ok: true }));
@@ -88,6 +102,32 @@ app.post("/api/local/questions",{config:{rateLimit:{max:20,timeWindow:"1 minute"
   const selected=new QuestionBank(databaseQuestions.length?databaseQuestions:seedQuestions).sample(parsed.data.modes,parsed.data.categoryIds,parsed.data.count);
   if(selected.length<parsed.data.count)return reply.status(409).send({error:"NOT_ENOUGH_QUESTIONS",available:selected.length});
   return {questions:selected.map(question=>({id:question.id,mode:question.mode,category:question.packageId,prompt:question.prompt,correct:question.correctAnswer,decoys:question.decoys??[],explanation:question.explanation}))};
+});
+const decodeCookie=(value:string):string=>{try{return decodeURIComponent(value);}catch{throw new GameError("INVALID_REFRESH_TOKEN","Refresh cookie is invalid");}};
+const bearerUser=(authorization:string|undefined):string=>{
+  const match=/^Bearer\s+(.+)$/iu.exec(authorization??"");
+  if(!match)throw new GameError("INVALID_ACCESS_TOKEN","Bearer access token is required");
+  return accessTokens.verify(match[1]).sub;
+};
+app.post("/api/auth/anonymous",{config:{rateLimit:{max:5,timeWindow:"10 minutes"}}},async(request,reply)=>{
+  const result=await identityService.createAnonymous(request.body);
+  reply.header("Cache-Control","no-store").header("Set-Cookie",refreshCookie(result.refreshToken));
+  const {refreshToken:_,...publicResult}=result;
+  return reply.status(201).send({data:publicResult});
+});
+app.post("/api/auth/refresh",{config:{rateLimit:{max:10,timeWindow:"10 minutes"}}},async(request,reply)=>{
+  const token=readCookie(request.headers.cookie,refreshCookieName);
+  if(!token)throw new GameError("INVALID_REFRESH_TOKEN","Refresh cookie is required");
+  const result=await identityService.refresh(decodeCookie(token));
+  reply.header("Cache-Control","no-store").header("Set-Cookie",refreshCookie(result.refreshToken));
+  const {refreshToken:_,...publicResult}=result;
+  return {data:publicResult};
+});
+app.get("/api/me",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await identityService.me(bearerUser(request.headers.authorization))}));
+app.patch("/api/me",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await identityService.update(bearerUser(request.headers.authorization),request.body)}));
+app.post("/api/auth/logout-all",async(request,reply)=>{
+  await identityService.logoutAll(bearerUser(request.headers.authorization));
+  return reply.header("Set-Cookie",refreshCookie("",0)).status(204).send();
 });
 app.post("/api/rooms", {config:{rateLimit:{max:5,timeWindow:"10 minutes"}}}, async (request) => {
   const body = parsePayload(clientEventSchemas.roomCreate, request.body);
