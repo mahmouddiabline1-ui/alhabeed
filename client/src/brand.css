@@ -29,6 +29,7 @@
 .category-card i { position: absolute; inset: 0; height: 100%; transition: transform 360ms var(--ease-out); }
 .category-card span, .category-card em, .category-card strong { position: absolute; z-index: 2; }
 .category-card em { font-style: normal; top: 12px; right: 12px; padding: 6px 10px; border-radius: 8px; background: #101f49ed; color: #fff; font-size: 10px; line-height: 1.5; font-weight: 800; border: 1px solid #ffffff26; }
+.category-card .vip-badge { top: 12px; left: 12px; padding: 5px 8px; border-radius: 7px; background: #e8551e; color: #fff8e7; border: 1px solid #ffb36b; font-size: 9px; line-height: 1; font-weight: 950; letter-spacing: .08em; box-shadow: 0 3px 0 #8d260d; }
 .category-card.active { border-color: var(--orange); box-shadow: 0 0 0 2px var(--cream), 0 0 0 4px #e8551e90, 0 8px 20px #101f4910; }
 .category-card:nth-child(1) { --card-accent: #e85b32; }
 .category-card:nth-child(2) { --card-accent: #b17945; }

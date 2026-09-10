@@ -79,7 +79,7 @@ app.get("/api/rooms/:code", async (request) => {
 });
 const localQuestionRequest=z.object({
   modes:z.array(z.enum(["habbedha","true_or_bluff","complete_bluff"])).min(1).max(3),
-  categoryIds:z.array(z.string().min(1).max(64)).min(1).max(12),
+  categoryIds:z.array(z.string().min(1).max(64)).min(1).max(24),
   count:z.number().int().min(3).max(30),
 }).strict();
 app.get("/api/content/catalog",async()=>({

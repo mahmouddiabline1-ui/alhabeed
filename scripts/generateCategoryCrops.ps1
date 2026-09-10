@@ -12,7 +12,19 @@ $cards = @(
   @{ Id='nature'; Source='pack-art-v2.png'; Columns=4; Rows=1; Column=2; Row=0 },
   @{ Id='world'; Source='pack-art-v2.png'; Columns=4; Rows=1; Column=3; Row=0 },
   @{ Id='egypt_landmarks'; Source='landmarks-egypt-v1.png'; Columns=3; Rows=2; Column=1; Row=1 },
-  @{ Id='world_landmarks'; Source='landmarks-world-v1.png'; Columns=3; Rows=2; Column=1; Row=0 }
+  @{ Id='world_landmarks'; Source='landmarks-world-v1.png'; Columns=3; Rows=2; Column=1; Row=0 },
+  @{ Id='childhood_cartoon'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=0; Row=0 },
+  @{ Id='gaming'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=1; Row=0 },
+  @{ Id='cars'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=2; Row=0 },
+  @{ Id='world_football'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=3; Row=0 },
+  @{ Id='flags'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=0; Row=1 },
+  @{ Id='riddles'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=1; Row=1 },
+  @{ Id='medicine'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=2; Row=1 },
+  @{ Id='inventions'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=3; Row=1 },
+  @{ Id='ramadan'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=0; Row=2 },
+  @{ Id='celebrities'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=1; Row=2 },
+  @{ Id='strange_animals'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=2; Row=2 },
+  @{ Id='travel'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=3; Row=2 }
 )
 
 $publicDir = Join-Path $PSScriptRoot '..\client\public'

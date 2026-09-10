@@ -200,6 +200,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
                 aria-pressed={cats.includes(c)}
               >
                 <CategoryArtwork category={c} />
+                {CATEGORIES[c].vip&&<span className="vip-badge">VIP</span>}
                 <em>{cats.includes(c) ? "✓ متضاف" : "+ ضيف"}</em>
               </button>
             ))}

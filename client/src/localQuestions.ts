@@ -1,4 +1,5 @@
 import { EXTRA_QUESTIONS } from "./extraQuestions";
+import { VIP_QUESTIONS } from "./vipQuestions";
 import { CATEGORIES, type CategoryId, type LocalQuestion } from "./catalog";
 export { CATEGORIES, type CategoryId, type LocalQuestion } from "./catalog";
 const CURATED: LocalQuestion[] = [
@@ -809,4 +810,5 @@ export const LOCAL_QUESTIONS: LocalQuestion[] = [
   ...music,
   ...technology,
   ...landmarks,
+  ...VIP_QUESTIONS,
 ];
