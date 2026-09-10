@@ -14,7 +14,11 @@ const commandEnvelope = {
 
 export const roomSettingsPatchSchema = z.object({
   modes: z.array(mode).min(1).max(3).optional(),
-  packageIds: z.array(z.string().trim().min(1).max(64)).min(1).max(12).optional(),
+  packageIds: z.array(z.string().trim().min(1).max(64))
+    .min(1)
+    .max(LIMITS.packages.max)
+    .refine((values) => new Set(values).size === values.length, "Package IDs must be unique")
+    .optional(),
   totalRounds: z.number().int().min(LIMITS.rounds.min).max(LIMITS.rounds.max).optional(),
   answerSeconds: z.number().int().min(LIMITS.answerSeconds.min).max(LIMITS.answerSeconds.max).optional(),
   voteSeconds: z.number().int().min(LIMITS.voteSeconds.min).max(LIMITS.voteSeconds.max).optional(),

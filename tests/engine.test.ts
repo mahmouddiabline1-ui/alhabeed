@@ -4,6 +4,7 @@ import { GameEngine } from "../src/core/engine.js";
 import { GameError } from "../src/core/errors.js";
 import { QuestionBank } from "../src/core/questions.js";
 import { seedQuestions } from "../src/content/seed.js";
+import { roomSettingsPatchSchema } from "../src/contracts/events.js";
 
 function setup(mode: "habbedha" | "true_or_bluff" | "complete_bluff" = "habbedha") {
   let time = 1_000;
@@ -25,6 +26,11 @@ test("nobody sees the correct answer before reveal", () => {
   assert.equal(state.round?.correctAnswer, undefined);
   assert.equal(state.round?.explanation, undefined);
   assert.deepEqual(state.round?.options, []);
+  const serialized = JSON.stringify(state);
+  assert.equal(serialized.includes("submissions"), false);
+  assert.equal(serialized.includes("correctAnswer"), false);
+  assert.equal(serialized.includes("authorId"), false);
+  assert.equal(serialized.includes("isCorrect"), false);
 });
 
 test("all players answer, then any option including own answer can be voted", () => {
@@ -98,11 +104,66 @@ test("public voting state hides authors, correctness, and votes until reveal", (
   engine.submitAnswer(code, "p2", "اثنين");
   engine.submitAnswer(code, "p3", "ثلاثة");
   const publicState = engine.publicState(code, "p1");
+  const serialized = JSON.stringify(publicState);
+  assert.equal(serialized.includes("submissions"), false);
+  assert.equal(Object.hasOwn(publicState.round!, "votes"), false, "raw vote lookup is never public");
   for (const option of publicState.round!.options) {
     assert.equal(option.authorId, undefined);
     assert.equal(option.isCorrect, undefined);
     assert.deepEqual(option.votes, []);
   }
+});
+
+test("public reveal state exposes results without raw submissions or vote lookup", () => {
+  const { engine, code } = setup("true_or_bluff");
+  const started = engine.start(code, "p1");
+  const correct = started.round!.options.find((option) => option.isCorrect)!;
+  engine.vote(code, "p1", correct.id);
+  engine.vote(code, "p2", correct.id);
+  engine.vote(code, "p3", correct.id);
+  const revealed = engine.publicState(code, "p1");
+  const serialized = JSON.stringify(revealed);
+  assert.equal(serialized.includes("submissions"), false);
+  assert.equal(Object.hasOwn(revealed.round!, "votes"), false);
+  assert.ok(revealed.round!.correctAnswer);
+  assert.ok(revealed.round!.explanation);
+  assert.equal(revealed.round!.options.some((option) => option.isCorrect), true);
+  assert.deepEqual(revealed.round!.options.find((option) => option.isCorrect)!.votes.sort(), ["p1", "p2", "p3"]);
+});
+
+test("package selection accepts 36 unique trimmed IDs and rejects invalid lists", () => {
+  const packageIds = Array.from({ length: 36 }, (_, index) => `package-${index + 1}`);
+  const engine = new GameEngine(new QuestionBank(seedQuestions));
+  const room = engine.createRoom({ id: "p1", name: "Ahmed" }, { packageIds: packageIds.map((id) => ` ${id} `) });
+  assert.deepEqual(room.settings.packageIds, packageIds);
+  expectCode(
+    () => engine.createRoom({ id: "p2", name: "Mona" }, { packageIds: ["egypt", " egypt "] }),
+    "INVALID_PACKAGES"
+  );
+  expectCode(() => engine.createRoom({ id: "p3", name: "Omar" }, { packageIds: ["   "] }), "INVALID_PACKAGES");
+  expectCode(() => engine.createRoom({ id: "p4", name: "Sara" }, { packageIds: [] }), "INVALID_PACKAGES");
+  expectCode(
+    () => engine.createRoom({ id: "p5", name: "Nour" }, { packageIds: [...packageIds, "package-37"] }),
+    "INVALID_PACKAGES"
+  );
+});
+
+test("package settings socket schema accepts 36 IDs and rejects duplicates", () => {
+  const packageIds = Array.from({ length: 36 }, (_, index) => `package-${index + 1}`);
+  assert.equal(roomSettingsPatchSchema.safeParse({ packageIds }).success, true);
+  assert.equal(roomSettingsPatchSchema.safeParse({ packageIds: ["egypt", "egypt"] }).success, false);
+  assert.equal(roomSettingsPatchSchema.safeParse({ packageIds: ["egypt", " egypt "] }).success, false);
+});
+
+test("starting with packages that cannot supply the selected mode fails cleanly", () => {
+  const engine = new GameEngine(new QuestionBank(seedQuestions));
+  const room = engine.createRoom(
+    { id: "p1", name: "Ahmed" },
+    { modes: ["habbedha"], packageIds: ["unavailable-package"] }
+  );
+  engine.joinRoom(room.code, { id: "p2", name: "Mona" });
+  engine.joinRoom(room.code, { id: "p3", name: "Omar" });
+  expectCode(() => engine.start(room.code, "p1"), "NO_QUESTIONS");
 });
 
 test("room constraints and duplicate actions are enforced", () => {

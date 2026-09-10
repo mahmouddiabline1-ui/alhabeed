@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS: RoomSettings = {
 
 export const LIMITS = {
   players: { min: 3, max: 10 },
+  packages: { min: 1, max: 36 },
   rounds: { min: 3, max: 30 },
   answerSeconds: { min: 15, max: 180 },
   voteSeconds: { min: 10, max: 90 },

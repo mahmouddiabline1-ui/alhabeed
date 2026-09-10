@@ -76,7 +76,7 @@ export interface RoomState {
   version: number;
 }
 
-export interface PublicRoundState extends Omit<RoundState, "submissions" | "options"> {
+export interface PublicRoundState extends Omit<RoundState, "submissions" | "votes" | "options"> {
   hasSubmitted: boolean;
   hasVoted: boolean;
   options: Array<Omit<AnswerOption, "authorId" | "isCorrect"> & {

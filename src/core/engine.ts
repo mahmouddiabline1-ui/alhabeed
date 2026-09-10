@@ -142,12 +142,21 @@ export class GameEngine {
     const round = room.round;
     if (!round) return structuredClone(room) as PublicRoomState;
     const revealed = round.phase === "reveal";
+    const {
+      submissions: _submissions,
+      votes: _votes,
+      options: _options,
+      correctAnswer,
+      explanation,
+      ...publicRound
+    } = structuredClone(round);
     return {
       ...structuredClone(room),
       round: {
-        ...structuredClone(round),
+        ...publicRound,
         hasSubmitted: Boolean(round.submissions[viewerId]),
         hasVoted: Boolean(round.votes[viewerId]),
+        ...(revealed ? { correctAnswer, explanation } : {}),
         options: round.options.map((option) => ({
           id: option.id,
           text: option.text,
@@ -257,12 +266,20 @@ export class GameEngine {
     const validModes: ModeId[] = ["habbedha", "true_or_bluff", "complete_bluff"];
     assertGame(settings.modes.every((mode) => validModes.includes(mode)), "INVALID_MODE", "Unknown game mode");
     assertGame(settings.modes.length > 0, "NO_MODES", "Select at least one mode");
-    assertGame(settings.packageIds.length > 0, "NO_PACKAGES", "Select at least one package");
+    const packageIds = settings.packageIds.map((packageId) => packageId.trim());
+    assertGame(
+      packageIds.length >= LIMITS.packages.min &&
+      packageIds.length <= LIMITS.packages.max &&
+      packageIds.every((packageId) => packageId.length > 0) &&
+      new Set(packageIds).size === packageIds.length,
+      "INVALID_PACKAGES",
+      `Select ${LIMITS.packages.min}-${LIMITS.packages.max} unique package IDs`
+    );
     this.inRange(settings.totalRounds, LIMITS.rounds, "INVALID_ROUNDS");
     this.inRange(settings.answerSeconds, LIMITS.answerSeconds, "INVALID_ANSWER_TIME");
     this.inRange(settings.voteSeconds, LIMITS.voteSeconds, "INVALID_VOTE_TIME");
     this.inRange(settings.revealSeconds, LIMITS.revealSeconds, "INVALID_REVEAL_TIME");
-    return structuredClone(settings);
+    return structuredClone({ ...settings, packageIds });
   }
 
   private inRange(value: number, range: { min: number; max: number }, code: string): void {

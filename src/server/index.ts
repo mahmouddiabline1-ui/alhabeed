@@ -73,10 +73,6 @@ app.get("/metrics",async(request,reply)=>{
   if(config.metricsToken&&request.headers.authorization!==`Bearer ${config.metricsToken}`)return reply.status(401).send({error:"UNAUTHORIZED"});
   return reply.type("text/plain; version=0.0.4").send(metrics.render());
 });
-app.get("/api/rooms/:code", async (request) => {
-  const { code } = request.params as { code: string };
-  return service.engine.getRoom(code);
-});
 const localQuestionRequest=z.object({
   modes:z.array(z.enum(["habbedha","true_or_bluff","complete_bluff"])).min(1).max(3),
   categoryIds:z.array(z.string().min(1).max(64)).min(1).max(36),
