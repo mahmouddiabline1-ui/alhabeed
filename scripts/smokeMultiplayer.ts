@@ -26,13 +26,26 @@ const command=async(peer:Peer,event:string,payload:object):Promise<State>=>{
 const peers=[peer(),peer(),peer()];
 try {
   await Promise.all(peers.map(value=>new Promise<void>((resolve,reject)=>{value.socket.once("connect",resolve);value.socket.once("connect_error",reject);}))); 
-  const packageIds=["egypt","history","football","screen","food","science","music","technology","nature","world","egypt_landmarks","world_landmarks"];
+  const packageIds=["space"];
+  const catalogResponse=await fetch(`${serverUrl}/api/content/catalog`);
+  if(!catalogResponse.ok)throw new Error("Could not load content catalog");
+  const catalog=await catalogResponse.json() as {categories:Array<{id:string;count:number}>};
+  const space=catalog.categories.find(category=>category.id==="space");
+  if(!space||space.count<3)throw new Error("New space category is not published with enough questions");
+  let fixture:{questions:Array<{id:string;category:string}>}|undefined;
+  for(let count=Math.min(30,space.count);count>=3;count--){
+    const response=await fetch(`${serverUrl}/api/local/questions`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({modes:["habbedha"],categoryIds:packageIds,count})});
+    if(response.ok){fixture=await response.json() as {questions:Array<{id:string;category:string}>};break;}
+  }
+  if(!fixture)throw new Error("Could not load selected package fixture");
+  const selectedQuestionIds=new Set(fixture.questions.map(question=>question.id));
   const created=await request<any>(peers[0]!,"room:create",{name:"Smoke Host",settings:{modes:["habbedha"],packageIds,totalRounds:3,answerSeconds:15,voteSeconds:10,revealSeconds:5}});
   peers[0]!.room=created.room;const code=created.room.code;
   for(let index=1;index<3;index++){const joined=await request<any>(peers[index]!,"room:join",{name:`Smoke ${index+1}`,code});peers[index]!.room=joined.room;}
   await Promise.all(peers.map(value=>waitFor(value,room=>Object.keys(room.players).length===3)));
   const started=await command(peers[0]!,"game:start",{code});
   if(!/^[0-9a-f-]{36}$/iu.test(started.round.questionId))throw new Error("Round did not use a PostgreSQL question UUID");
+  if(!selectedQuestionIds.has(started.round.questionId))throw new Error("Round ignored selected space package");
   let latest=started;
   for(let index=0;index<3;index++){
     await waitFor(peers[index]!,room=>room.version>=latest.version);
@@ -45,5 +58,5 @@ try {
     latest=await command(peers[index]!,"round:vote",{code,optionId:peers[index]!.room.round.options[0].id});
   }
   if(latest.phase!=="reveal"||!latest.round.correctAnswer)throw new Error("Voting did not reach reveal");
-  process.stdout.write(JSON.stringify({ok:true,code,questionId:started.round.questionId,finalVersion:latest.version,privateBeforeReveal:true,revealedAfterVote:true})+"\n");
+  process.stdout.write(JSON.stringify({ok:true,code,packageId:"space",questionId:started.round.questionId,finalVersion:latest.version,privateBeforeReveal:true,revealedAfterVote:true})+"\n");
 } finally {peers.forEach(value=>value.socket.disconnect());}

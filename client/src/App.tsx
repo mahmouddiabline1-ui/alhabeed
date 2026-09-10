@@ -3,11 +3,13 @@ import { Check, Copy, Crown, LogIn, Play, RotateCcw, Send, Settings2, Sparkles, 
 import { io } from "socket.io-client";
 import type { ModeId, Player, Room, Session } from "./types";
 import { LocalGame } from "./LocalGame";
+import { CategoryLibrary, DEFAULT_CATEGORY_IDS } from "./CategoryLibrary";
+import { CATEGORIES, type CategoryId } from "./catalog";
 import { serverUrl } from "./serverUrl";
 
 const socket = io(serverUrl || undefined, { autoConnect: false });
 const MODE_NAMES: Record<ModeId,string> = { habbedha: "هَبِّدها", true_or_bluff: "صح ولا هبد؟", complete_bluff: "كمّل الهبدة" };
-const DEFAULTS = { totalRounds: 9, answerSeconds: 45, voteSeconds: 25, revealSeconds: 10 };
+const DEFAULTS = { totalRounds: 9, answerSeconds: 45, voteSeconds: 25, revealSeconds: 10, packageIds: DEFAULT_CATEGORY_IDS };
 
 export function App() {
   const [room, setRoom] = useState<Room | null>(null);
@@ -17,6 +19,7 @@ export function App() {
   const [code, setCode] = useState(new URLSearchParams(location.search).get("room") ?? "");
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
+  const [availableCategories, setAvailableCategories] = useState<CategoryId[]>(DEFAULT_CATEGORY_IDS);
   const [now, setNow] = useState(Date.now());
   const [settings, setSettings] = useState({ ...DEFAULTS, modes: ["habbedha","true_or_bluff","complete_bluff"] as ModeId[] });
 
@@ -27,10 +30,32 @@ export function App() {
     socket.on("room:state", onState); socket.on("game:error", onError);
     const wantsRoom = location.hash.startsWith("#/room") || new URLSearchParams(location.search).has("room");
     if (session?.token && wantsRoom) {
-      socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => setRoom(state));
+      socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => {
+        setRoom(state);
+        setSettings({
+          ...state.settings,
+          packageIds: state.settings.packageIds.filter((id): id is CategoryId => id in CATEGORIES),
+        });
+      });
     }
     const clock = setInterval(() => setNow(Date.now()), 250);
     return () => { socket.off("room:state", onState); socket.off("game:error", onError); socket.disconnect(); clearInterval(clock); };
+  }, []);
+
+  useEffect(() => {
+    const known = new Set(Object.keys(CATEGORIES));
+    fetch(`${serverUrl.replace(/\/$/u, "")}/api/content/catalog`)
+      .then((response) => {
+        if (!response.ok) throw new Error();
+        return response.json();
+      })
+      .then((data: {categories?: Array<{id:string}>}) => {
+        const published = (data.categories ?? []).map(({id}) => id).filter((id): id is CategoryId => known.has(id));
+        if (!published.length) throw new Error();
+        setAvailableCategories(published);
+        setSettings((current) => ({...current, packageIds: published}));
+      })
+      .catch(() => setError("السيرفر مش متصل بمكتبة الفئات دلوقتي — متاحين الفئات الأساسية"));
   }, []);
 
   useEffect(() => { setAnswer(""); }, [room?.round?.number, room?.round?.phase]);
@@ -51,7 +76,9 @@ export function App() {
   const remaining = room?.round ? Math.max(0, Math.ceil((room.round.phaseEndsAt - now) / 1000)) : 0;
 
   const create = (e: FormEvent) => {
-    e.preventDefault(); setError("");
+    e.preventDefault();
+    if (!settings.packageIds.length) { setError("اختار فئة واحدة على الأقل"); return; }
+    setError("");
     socket.emit("room:create", { name, settings }, (result: {player:{id:string},room:Room}) => saveAndEnter(result, name, setSession, setRoom));
   };
   const join = (e: FormEvent) => {
@@ -66,11 +93,11 @@ export function App() {
   });
 
   if (screen === "local") return <LocalGame onExit={()=>setScreen("home")} />;
-  if (!room || !session || !me) return <Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} error={error} />;
+  if (!room || !session || !me) return <Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} />;
   return <main className="app-shell">
     <TopBar room={room} me={me} remaining={remaining} />
     {error && <div className="toast">{error}</div>}
-    {room.phase === "lobby" && <Lobby room={room} session={session} isHost={isHost} settings={settings} setSettings={setSettings} emit={emit} />}
+    {room.phase === "lobby" && <Lobby room={room} session={session} isHost={isHost} settings={settings} setSettings={setSettings} availableCategories={availableCategories} emit={emit} />}
     {room.phase === "answering" && room.round && <AnswerPhase room={room} session={session} answer={answer} setAnswer={setAnswer} emit={emit} />}
     {room.phase === "voting" && room.round && <VotePhase room={room} session={session} emit={emit} />}
     {room.phase === "reveal" && room.round && <Reveal room={room} session={session} />}
@@ -97,8 +124,8 @@ function Home(p: any) {
       <h2>{p.screen === "create" ? "اعمل قعدة جديدة" : "خش على صحابك"}</h2>
       <label>اسمك<input value={p.name} onChange={(e:any)=>p.setName(e.target.value)} placeholder="اكتب اسمك" minLength={2} maxLength={24} required /></label>
       {p.screen === "join" && <label>كود القعدة<input className="code-input" value={p.code} onChange={(e:any)=>p.setCode(e.target.value)} placeholder="A1B2C3" maxLength={6} required /></label>}
-      {p.screen === "create" && <QuickSettings settings={p.settings} setSettings={p.setSettings} />}
-      <button className="primary" type="submit"><Play/> {p.screen === "create" ? "أنشئ القعدة" : "ادخل القعدة"}</button>
+      {p.screen === "create" && <><QuickSettings settings={p.settings} setSettings={p.setSettings} /><CategoryPicker settings={p.settings} setSettings={p.setSettings} available={p.availableCategories}/></>}
+      <button className="primary" type="submit" disabled={p.screen === "create" && (!p.settings.modes.length || !p.settings.packageIds.length)}><Play/> {p.screen === "create" ? "أنشئ القعدة" : "ادخل القعدة"}</button>
     </form>}
   </main>;
 }
@@ -110,11 +137,20 @@ function QuickSettings({settings,setSettings}:{settings:any,setSettings:(s:any)=
   </div></div>;
 }
 
+function CategoryPicker({settings,setSettings,available}:{settings:any;setSettings:(s:any)=>void;available:CategoryId[]}) {
+  const toggle = (category:CategoryId) => setSettings({...settings, packageIds: settings.packageIds.includes(category) ? settings.packageIds.filter((id:CategoryId) => id !== category) : [...settings.packageIds, category]});
+  return <div className="online-category-picker">
+    <div className="online-category-heading"><b>فئات القعدة</b><span>{settings.packageIds.length} مختارة</span></div>
+    <CategoryLibrary compact selected={settings.packageIds} available={available} onToggle={toggle}/>
+    {!settings.packageIds.length && <small className="selection-warning">اختار فئة واحدة على الأقل عشان تبدأ</small>}
+  </div>;
+}
+
 function TopBar({room,me,remaining}:{room:Room,me:any,remaining:number}) {
   return <header><div className="mini-brand">الهَبِّيد</div><div className="room-pill"><Users size={16}/> {Object.keys(room.players).length} · {room.code}</div>{room.round && <div className="timer">{remaining}</div>}<div className="score">{me.score} نقطة</div></header>;
 }
 
-function Lobby({room,session,isHost,settings,setSettings,emit}:any) {
+function Lobby({room,session,isHost,settings,setSettings,availableCategories,emit}:any) {
   const copyInvite = () => navigator.clipboard.writeText(`${location.origin}?room=${room.code}`);
   const update = () => emit("room:settings", {code:room.code,patch:settings});
   const start = async () => {
@@ -124,11 +160,11 @@ function Lobby({room,session,isHost,settings,setSettings,emit}:any) {
   return <section className="stage lobby"><div className="eyebrow">القعدة جاهزة</div><h2>لمّ صحابك وابدأوا الهبد</h2>
     <button className="invite" onClick={copyInvite}><Copy/> كود القعدة <b>{room.code}</b></button>
     <div className="players">{Object.values(room.players).map((p:any)=><div className={p.connected?"player":"player offline"} key={p.id}><div className="avatar">{p.name[0]}</div><span>{p.name}</span>{room.hostId===p.id&&<Crown size={18}/>}<i>{p.connected?"جاهز":"فاصل"}</i></div>)}</div>
-    {isHost ? <div className="host-controls"><h3>إعدادات القعدة</h3><QuickSettings settings={settings} setSettings={setSettings}/><div className="settings-grid">
+    {isHost ? <div className="host-controls"><h3>إعدادات القعدة</h3><QuickSettings settings={settings} setSettings={setSettings}/><CategoryPicker settings={settings} setSettings={setSettings} available={availableCategories}/><div className="settings-grid">
       <NumberField label="الجولات" value={settings.totalRounds} min={3} max={30} onChange={(v)=>setSettings({...settings,totalRounds:v})}/>
       <NumberField label="وقت الإجابة" value={settings.answerSeconds} min={15} max={180} onChange={(v)=>setSettings({...settings,answerSeconds:v})}/>
       <NumberField label="وقت التصويت" value={settings.voteSeconds} min={10} max={90} onChange={(v)=>setSettings({...settings,voteSeconds:v})}/>
-    </div><button className="secondary small" onClick={update}>حفظ الإعدادات</button><button className="primary" disabled={Object.keys(room.players).length<3||settings.modes.length===0} onClick={start}><Play/> ابدأ اللعب</button></div> : <div className="waiting"><span className="loader"/> مستنيين صاحب القعدة يبدأ…</div>}
+    </div><button className="secondary small" disabled={!settings.packageIds.length} onClick={update}>حفظ الإعدادات</button><button className="primary" disabled={Object.keys(room.players).length<3||settings.modes.length===0||settings.packageIds.length===0} onClick={start}><Play/> ابدأ اللعب</button></div> : <div className="waiting"><span className="loader"/> مستنيين صاحب القعدة يبدأ…</div>}
   </section>;
 }
 

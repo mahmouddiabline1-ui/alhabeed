@@ -23,6 +23,19 @@
 .character-choice:hover { transform: translateY(-2px); }
 .character-choice.active { border-color: var(--orange); box-shadow: 0 0 0 3px #fffdf8, 0 0 0 5px var(--orange), 0 4px 0 #101f4920; }
 .category-library { display: grid; gap: 22px; }
+.online-category-picker { display: grid; gap: 12px; min-width: 0; padding-top: 4px; }
+.online-category-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.online-category-heading span { color: var(--muted); font-size: 11px; font-weight: 800; }
+.selection-warning { color: #a3310d; font-size: 11px; font-weight: 700; }
+.category-library.compact { gap: 10px; }
+.category-library.compact .category-section { padding: 8px; border-radius: 16px; }
+.category-library.compact .category-section-toggle { min-height: 52px; padding: 8px 10px; border-radius: 11px; }
+.category-library.compact .category-section-toggle b { font-size: 13px; }
+.category-library.compact .category-section-toggle small { display: none; }
+.category-library.compact .category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 8px; }
+.category-library.compact .category-card { border-radius: 11px; border-width: 1px; }
+.category-library.compact .category-card em { top: 5px; right: 5px; padding: 3px 5px; font-size: 7px; border-radius: 5px; }
+.category-library.compact .category-card .vip-badge { top: 5px; left: 5px; padding: 3px 4px; font-size: 6px; border-radius: 4px; box-shadow: 0 1px 0 #8d260d; }
 .category-section { padding: 14px; border: 1px solid #101f4920; border-radius: 22px; background: #ffffff82; box-shadow: 0 10px 30px #101f4908; }
 .category-section-toggle { width: 100%; min-height: 66px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 0; border-radius: 15px; background: var(--navy); color: #fff; text-align: right; }
 .category-section-toggle > span:first-child { display: grid; gap: 3px; }
@@ -83,6 +96,7 @@
   .category-card { border-radius: 16px; }
   .category-card em { top: 8px; right: 8px; font-size: 9px; padding: 5px 8px; }
   .setup-section { padding: 20px; }
+  .category-library.compact .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .local-start-bar { left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); gap: 8px; padding: 12px; border-radius: 16px; }
   .local-start-bar > div { padding-inline: 4px; } .local-start-bar .primary { font-size: 13px; } .round-picker { gap: 6px; }
 }
