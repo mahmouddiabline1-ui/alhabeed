@@ -6,7 +6,7 @@ import { LocalGame } from "./LocalGame";
 import { CategoryLibrary, DEFAULT_CATEGORY_IDS } from "./CategoryLibrary";
 import { CATEGORIES, type CategoryId } from "./catalog";
 import { serverUrl } from "./serverUrl";
-import { createProfile, logoutAll, restoreProfile, updateProfile, type CharacterId, type Profile } from "./identityClient";
+import { createProfile, currentAccessToken, logoutAll, restoreProfile, updateProfile, type CharacterId, type Profile } from "./identityClient";
 import { ProfilePanel } from "./ProfilePanel";
 
 const socket = io(serverUrl || undefined, { autoConnect: false });
@@ -29,25 +29,23 @@ export function App() {
   const [profileBusy,setProfileBusy]=useState(false);
   const [profileError,setProfileError]=useState("");
 
-  useEffect(()=>{let active=true;restoreProfile().then(value=>{if(!active)return;setProfile(value);if(value)setName(current=>current||value.displayName);});return()=>{active=false;};},[]);
-
   useEffect(() => {
-    socket.connect();
+    let active=true;
     const onState = (state: Room) => { setRoom(state); setError(""); };
     const onError = (e: {message:string}) => setError(arabicError(e.message));
     socket.on("room:state", onState); socket.on("game:error", onError);
-    const wantsRoom = location.hash.startsWith("#/room") || new URLSearchParams(location.search).has("room");
-    if (session?.token && wantsRoom) {
-      socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => {
-        setRoom(state);
-        setSettings({
-          ...state.settings,
-          packageIds: state.settings.packageIds.filter((id): id is CategoryId => id in CATEGORIES),
+    void restoreProfile().then(value=>{
+      if(!active)return;
+      setProfile(value);if(value)setName(current=>current||value.displayName);
+      socket.auth={accessToken:currentAccessToken()};socket.connect();
+      const wantsRoom = location.hash.startsWith("#/room") || new URLSearchParams(location.search).has("room");
+      if (session?.token && wantsRoom) socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => {
+          setRoom(state);
+          setSettings({...state.settings,packageIds:state.settings.packageIds.filter((id):id is CategoryId=>id in CATEGORIES)});
         });
-      });
-    }
+    });
     const clock = setInterval(() => setNow(Date.now()), 250);
-    return () => { socket.off("room:state", onState); socket.off("game:error", onError); socket.disconnect(); clearInterval(clock); };
+    return () => { active=false;socket.off("room:state", onState); socket.off("game:error", onError); socket.disconnect(); clearInterval(clock); };
   }, []);
 
   useEffect(() => {
@@ -100,8 +98,9 @@ export function App() {
     });
   });
 
-  const saveProfile=async(displayName:string,character:CharacterId)=>{setProfileBusy(true);setProfileError("");try{const value=profile?await updateProfile(displayName,character):await createProfile(displayName,character);setProfile(value);setName(value.displayName);setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"حصلت مشكلة في حفظ البروفايل");}finally{setProfileBusy(false);}};
-  const signOut=async()=>{setProfileBusy(true);setProfileError("");try{await logoutAll();setProfile(null);setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"تعذّر تسجيل الخروج");}finally{setProfileBusy(false);}};
+  const refreshSocketIdentity=()=>{socket.auth={accessToken:currentAccessToken()};if(!room){socket.disconnect();socket.connect();}};
+  const saveProfile=async(displayName:string,character:CharacterId)=>{setProfileBusy(true);setProfileError("");try{const value=profile?await updateProfile(displayName,character):await createProfile(displayName,character);setProfile(value);setName(value.displayName);refreshSocketIdentity();setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"حصلت مشكلة في حفظ البروفايل");}finally{setProfileBusy(false);}};
+  const signOut=async()=>{setProfileBusy(true);setProfileError("");try{await logoutAll();setProfile(null);refreshSocketIdentity();setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"تعذّر تسجيل الخروج");}finally{setProfileBusy(false);}};
   const profilePanel=<ProfilePanel open={profileOpen} profile={profile} busy={profileBusy} error={profileError} onClose={()=>{setProfileOpen(false);setProfileError("");}} onSave={saveProfile} onLogout={signOut}/>;
   if (screen === "local") return <><LocalGame onExit={()=>setScreen("home")} />{profilePanel}</>;
   if (!room || !session || !me) return <><Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />{profilePanel}</>;

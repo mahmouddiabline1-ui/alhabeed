@@ -23,7 +23,7 @@ export class GameEngine {
     private readonly random: () => number = Math.random
   ) {}
 
-  createRoom(host: Pick<Player, "id" | "name">, requested: Partial<RoomSettings> = {}): RoomState {
+  createRoom(host: Pick<Player, "id" | "name" | "userId">, requested: Partial<RoomSettings> = {}): RoomState {
     const code = this.createCode();
     const settings = this.validateSettings({ ...DEFAULT_SETTINGS, ...requested });
     const room: RoomState = {
@@ -41,17 +41,28 @@ export class GameEngine {
     return structuredClone(room);
   }
 
-  joinRoom(code: string, joining: Pick<Player, "id" | "name">): RoomState {
+  joinRoom(code: string, joining: Pick<Player, "id" | "name" | "userId">): RoomState {
     const room = this.room(code);
     assertGame(room.phase === "lobby", "GAME_STARTED", "The match has already started");
     assertGame(Object.keys(room.players).length < LIMITS.players.max, "ROOM_FULL", "Room is full");
     assertGame(!room.players[joining.id], "ALREADY_JOINED", "Player already joined");
+    assertGame(!joining.userId || !Object.values(room.players).some(player=>player.userId===joining.userId), "ACCOUNT_ALREADY_IN_ROOM", "This account already has a player in the room");
     room.players[joining.id] = this.player(joining);
     return this.changed(room);
   }
 
   reconnect(code: string, playerId: PlayerId): RoomState {
     return this.setConnected(code, playerId, true);
+  }
+
+  bindUser(code: string, playerId: PlayerId, userId: string): RoomState {
+    const room = this.room(code);
+    const player = room.players[playerId];
+    assertGame(player, "PLAYER_NOT_FOUND", "Player not found");
+    assertGame(!Object.values(room.players).some(other=>other.id!==playerId&&other.userId===userId), "ACCOUNT_ALREADY_IN_ROOM", "This account already has a player in the room");
+    assertGame(!player.userId || player.userId === userId, "PLAYER_ACCOUNT_MISMATCH", "Player is already linked to another account");
+    if (!player.userId) player.userId = userId;
+    return this.changed(room);
   }
 
   getRoom(code: string): RoomState {
@@ -140,7 +151,8 @@ export class GameEngine {
   publicState(code: string, viewerId: PlayerId): PublicRoomState {
     const room = this.room(code);
     const round = room.round;
-    if (!round) return structuredClone(room) as PublicRoomState;
+    const publicPlayers=Object.fromEntries(Object.entries(room.players).map(([id,{userId:_userId,...player}])=>[id,structuredClone(player)]));
+    if (!round) return {...structuredClone(room),players:publicPlayers} as PublicRoomState;
     const revealed = round.phase === "reveal";
     const {
       submissions: _submissions,
@@ -152,6 +164,7 @@ export class GameEngine {
     } = structuredClone(round);
     return {
       ...structuredClone(room),
+      players: publicPlayers,
       round: {
         ...publicRound,
         hasSubmitted: Boolean(round.submissions[viewerId]),
@@ -301,7 +314,7 @@ export class GameEngine {
     return Object.values(room.players).filter((p) => p.connected);
   }
 
-  private player(input: Pick<Player, "id" | "name">): Player {
+  private player(input: Pick<Player, "id" | "name" | "userId">): Player {
     const name = input.name.trim();
     assertGame(name.length >= 2 && name.length <= 24, "INVALID_NAME", "Name must be 2-24 characters");
     return { ...input, name, connected: true, score: 0, joinedAt: this.now() };

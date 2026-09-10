@@ -2,14 +2,17 @@ import { randomUUID } from "node:crypto";
 import type { GameEngine } from "../core/engine.js";
 import type { RoomRepository } from "../persistence/repository.js";
 import type { Player, RoomSettings, RoomState } from "../core/types.js";
+import type { GameResultRepository } from "../results/types.js";
+import { resultFromFinishedRoom } from "../results/gameResults.js";
 
 export class GameService {
-  constructor(readonly engine: GameEngine, private readonly repository: RoomRepository) {}
+  constructor(readonly engine: GameEngine, private readonly repository: RoomRepository, private readonly results?:GameResultRepository, private readonly contentVersion="seed") {}
 
   async initialize(): Promise<void> { this.engine.restore(await this.repository.loadAll()); }
-  newPlayer(name: string): Pick<Player, "id" | "name"> { return { id: randomUUID(), name }; }
-  async persist(room: RoomState): Promise<RoomState> { await this.repository.save(room); return room; }
-  async create(name: string, settings: Partial<RoomSettings> = {}) { const p = this.newPlayer(name); return { player: p, room: await this.persist(this.engine.createRoom(p, settings)) }; }
+  newPlayer(name: string,userId?:string): Pick<Player, "id" | "name" | "userId"> { return { id: randomUUID(), name, ...(userId?{userId}:{}) }; }
+  async persist(room: RoomState): Promise<RoomState> { await this.repository.save(room); if(room.phase==="finished"&&this.results)await this.results.saveOnce(resultFromFinishedRoom(room,this.contentVersion)); return room; }
+  async create(name: string, settings: Partial<RoomSettings> = {},userId?:string) { const p = this.newPlayer(name,userId); return { player: p, room: await this.persist(this.engine.createRoom(p, settings)) }; }
+  async history(userId:string){return this.results?.historyForUser(userId,20)??[];}
   async tickAll(): Promise<RoomState[]> {
     const changed: RoomState[] = [];
     for (const old of this.engine.listRooms()) {

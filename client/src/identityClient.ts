@@ -3,6 +3,7 @@ import { serverUrl } from "./serverUrl";
 export const CHARACTER_IDS = Array.from({length:12},(_,index)=>`character-${index+1}`) as CharacterId[];
 export type CharacterId = `character-${1|2|3|4|5|6|7|8|9|10|11|12}`;
 export interface Profile { userId:string; displayName:string; selectedCharacterId:CharacterId; locale:string; createdAt:number; updatedAt:number }
+export interface GameHistoryItem { roomCode:string; finishedAt:number; playerCount:number; player:{score:number;rank:number}; settings:{totalRounds:number;modes:string[];packageIds:string[]} }
 
 const API=serverUrl.replace(/\/$/u,"");
 const TOKEN_KEY="alhabeed:access-token";
@@ -10,6 +11,7 @@ const DEVICE_KEY="alhabeed:device-id";
 let restorePromise:Promise<Profile|null>|null=null;
 
 const token=()=>sessionStorage.getItem(TOKEN_KEY);
+export const currentAccessToken=()=>token();
 const saveToken=(value:string)=>sessionStorage.setItem(TOKEN_KEY,value);
 const clearToken=()=>sessionStorage.removeItem(TOKEN_KEY);
 const deviceId=()=>{
@@ -48,6 +50,9 @@ export async function createProfile(displayName:string,selectedCharacterId:Chara
 }
 export async function updateProfile(displayName:string,selectedCharacterId:CharacterId){
   return authorized("/api/me",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({displayName,selectedCharacterId})}) as Promise<Profile>;
+}
+export async function getGameHistory(){
+  return authorized("/api/me/game-history") as Promise<GameHistoryItem[]>;
 }
 export async function logoutAll(){
   try { await authorized("/api/auth/logout-all",{method:"POST"},false); } finally { clearToken(); }

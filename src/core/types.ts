@@ -10,6 +10,8 @@ export interface Player {
   score: number;
   joinedAt: number;
   disconnectedAt?: number;
+  /** Private account link. It must never be emitted in PublicRoomState. */
+  userId?: string;
 }
 
 export interface RoomSummary {
@@ -85,6 +87,7 @@ export interface PublicRoundState extends Omit<RoundState, "submissions" | "vote
   }>;
 }
 
-export interface PublicRoomState extends Omit<RoomState, "round"> {
+export interface PublicRoomState extends Omit<RoomState, "round" | "players"> {
+  players: Record<PlayerId, Omit<Player, "userId">>;
   round: PublicRoundState | null;
 }

@@ -7,9 +7,10 @@ import { resolve } from "node:path";
 import { Server as SocketServer } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { createClient } from "redis";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { ZodType } from "zod";
 import { GameEngine } from "../core/engine.js";
+import type { Player } from "../core/types.js";
 import { GameError } from "../core/errors.js";
 import { QuestionBank } from "../core/questions.js";
 import { seedQuestions } from "../content/seed.js";
@@ -30,6 +31,8 @@ import { IdentityService, InMemoryProfileRepository } from "../identity/profiles
 import { InMemorySessionRepository, SessionService } from "../identity/sessions.js";
 import { PostgresProfileRepository, PostgresSessionRepository } from "../persistence/postgresIdentityRepository.js";
 import { readCookie, refreshCookie, refreshCookieName } from "./authHttp.js";
+import { PostgresGameResultRepository } from "../persistence/postgresGameResultRepository.js";
+import { InMemoryGameResultRepository } from "../results/inMemoryGameResultRepository.js";
 
 const config=loadConfig();
 const metrics=new MetricsRegistry();
@@ -58,11 +61,24 @@ if(redis&&redisSub){await Promise.all([redis.connect(),redisSub.connect()]);io.a
 const roomRepository=redis ? new RedisRoomRepository(redis) : sql ? new PostgresRoomRepository(sql) : new InMemoryRoomRepository();
 const databaseQuestions=sql ? await loadPublishedQuestions(sql) : [];
 if(config.environment==="production"&&!databaseQuestions.length)throw new Error("Production requires published questions in PostgreSQL");
-const service = new GameService(new GameEngine(new QuestionBank(databaseQuestions.length?databaseQuestions:seedQuestions)), roomRepository);
+const activeQuestions=databaseQuestions.length?databaseQuestions:seedQuestions;
+const contentVersion=`questions-sha256:${createHash("sha256").update(activeQuestions.map(question=>question.id).sort().join("\n")).digest("hex")}`;
+const resultRepository=sql?new PostgresGameResultRepository(sql):new InMemoryGameResultRepository();
+const service = new GameService(new GameEngine(new QuestionBank(activeQuestions)), roomRepository,resultRepository,contentVersion);
 const guestTokens = new GuestTokenService(appSecret);
 const sessionService=new SessionService(sql?new PostgresSessionRepository(sql):new InMemorySessionRepository());
 const accessTokens=new AccessTokenService(appSecret);
 const identityService=new IdentityService(sql?new PostgresProfileRepository(sql):new InMemoryProfileRepository(),sessionService,accessTokens);
+io.use((socket,next)=>{
+  try {
+    const token=socket.handshake.auth?.accessToken;
+    if(token!==undefined&&token!==null&&token!==""){
+      if(typeof token!=="string")throw new GameError("INVALID_ACCESS_TOKEN","Socket access token is invalid");
+      socket.data.authenticatedUserId=accessTokens.verify(token).sub;
+    }
+    next();
+  } catch(error) { next(error instanceof Error?error:new Error("Invalid socket access token")); }
+});
 const commandGate = new CommandGate();
 const socketRateLimiter = new SocketRateLimiter();
 await service.initialize();
@@ -125,6 +141,7 @@ app.post("/api/auth/refresh",{config:{rateLimit:{max:10,timeWindow:"10 minutes"}
 });
 app.get("/api/me",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await identityService.me(bearerUser(request.headers.authorization))}));
 app.patch("/api/me",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await identityService.update(bearerUser(request.headers.authorization),request.body)}));
+app.get("/api/me/game-history",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await service.history(bearerUser(request.headers.authorization))}));
 app.post("/api/auth/logout-all",async(request,reply)=>{
   await identityService.logoutAll(bearerUser(request.headers.authorization));
   return reply.header("Set-Cookie",refreshCookie("",0)).status(204).send();
@@ -153,9 +170,11 @@ io.on("connection", (socket) => {
     if (!value) throw new GameError("UNAUTHENTICATED", "Join or reconnect before sending game commands");
     return value;
   };
-  socket.on("room:create", (raw:unknown, ack) => guard(socket, async () => { const payload=parsePayload(clientEventSchemas.roomCreate,raw); const result = await service.create(payload.name, payload.settings); socket.data.identity = { code: result.room.code, playerId: result.player.id }; socket.join(`${result.room.code}:${result.player.id}`); ack?.({ player: result.player, room: service.engine.publicState(result.room.code, result.player.id), reconnectToken:guestTokens.issue(result.room.code,result.player.id) }); emitRoom(result.room.code); }));
-  socket.on("room:join", (raw:unknown, ack) => guard(socket, async () => { const payload=parsePayload(clientEventSchemas.roomJoin,raw); const player = service.newPlayer(payload.name); const room = await service.persist(service.engine.joinRoom(payload.code, player)); socket.data.identity = { code: room.code, playerId: player.id }; socket.join(`${room.code}:${player.id}`); ack?.({ player, room: service.engine.publicState(room.code, player.id), reconnectToken:guestTokens.issue(room.code,player.id) }); emitRoom(room.code); }));
-  socket.on("room:reconnect", (raw:unknown, ack) => guard(socket, async () => { const payload=parsePayload(clientEventSchemas.roomReconnect,raw); const claims=guestTokens.verify(payload.token,payload.code); const room = await service.persist(service.engine.reconnect(payload.code, claims.playerId)); socket.data.identity = {code:room.code,playerId:claims.playerId}; socket.join(`${room.code}:${claims.playerId}`); ack?.(service.engine.publicState(room.code, claims.playerId)); emitRoom(room.code); }));
+  const socketUser=():string|undefined=>typeof socket.data.authenticatedUserId==="string"?socket.data.authenticatedUserId:undefined;
+  const publicPlayer=(player:Pick<Player,"id"|"name">)=>({id:player.id,name:player.name});
+  socket.on("room:create", (raw:unknown, ack) => guard(socket, async () => { const payload=parsePayload(clientEventSchemas.roomCreate,raw); const result = await service.create(payload.name, payload.settings,socketUser()); socket.data.identity = { code: result.room.code, playerId: result.player.id }; socket.join(`${result.room.code}:${result.player.id}`); ack?.({ player: publicPlayer(result.player), room: service.engine.publicState(result.room.code, result.player.id), reconnectToken:guestTokens.issue(result.room.code,result.player.id) }); emitRoom(result.room.code); }));
+  socket.on("room:join", (raw:unknown, ack) => guard(socket, async () => { const payload=parsePayload(clientEventSchemas.roomJoin,raw); const player = service.newPlayer(payload.name,socketUser()); const room = await service.persist(service.engine.joinRoom(payload.code, player)); socket.data.identity = { code: room.code, playerId: player.id }; socket.join(`${room.code}:${player.id}`); ack?.({ player: publicPlayer(player), room: service.engine.publicState(room.code, player.id), reconnectToken:guestTokens.issue(room.code,player.id) }); emitRoom(room.code); }));
+  socket.on("room:reconnect", (raw:unknown, ack) => guard(socket, async () => { const payload=parsePayload(clientEventSchemas.roomReconnect,raw); const claims=guestTokens.verify(payload.token,payload.code); const userId=socketUser(); if(userId)service.engine.bindUser(payload.code,claims.playerId,userId); const room=await service.persist(service.engine.reconnect(payload.code, claims.playerId)); socket.data.identity = {code:room.code,playerId:claims.playerId}; socket.join(`${room.code}:${claims.playerId}`); ack?.(service.engine.publicState(room.code, claims.playerId)); emitRoom(room.code); }));
   const mutation = <T extends {code:string;commandId:string;expectedVersion:number}>(event:string, schema:ZodType<T>, fn:(p:T,viewer:SocketIdentity)=>any) => socket.on(event, (raw:unknown, ack?:Function) => guard(socket, async () => {
     const viewer=identity();
     const payload=parsePayload(schema,raw);
