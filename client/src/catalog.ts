@@ -4,7 +4,9 @@ export type CategoryId =
   | "egypt" | "history" | "football" | "screen" | "food" | "science"
   | "music" | "technology" | "nature" | "world" | "egypt_landmarks" | "world_landmarks"
   | "childhood_cartoon" | "gaming" | "cars" | "world_football" | "flags" | "riddles"
-  | "medicine" | "inventions" | "ramadan" | "celebrities" | "strange_animals" | "travel";
+  | "medicine" | "inventions" | "ramadan" | "celebrities" | "strange_animals" | "travel"
+  | "egyptian_cinema" | "arabic_music" | "ancient_civilizations" | "space" | "world_cuisine" | "internet_culture"
+  | "olympics" | "arabic_language" | "myths" | "oceans" | "architecture" | "books";
 
 export interface LocalQuestion {
   id?:string;mode:ModeId;category:CategoryId;prompt:string;correct:string;decoys:string[];explanation:string;
@@ -33,4 +35,16 @@ export const CATEGORIES:Record<CategoryId,{name:string;position:string;art?:stri
   celebrities:{name:"مشاهير وسوشيال",position:"33.333% 100%",art:"vip-card-art-v1.png",size:"400% 300%",vip:true},
   strange_animals:{name:"حيوانات عجيبة",position:"66.666% 100%",art:"vip-card-art-v1.png",size:"400% 300%",vip:true},
   travel:{name:"سفر ومغامرات",position:"100% 100%",art:"vip-card-art-v1.png",size:"400% 300%",vip:true},
+  egyptian_cinema:{name:"سينما مصرية",position:"0% 0%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  arabic_music:{name:"مزيكا عربية",position:"33.333% 0%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  ancient_civilizations:{name:"حضارات قديمة",position:"66.666% 0%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  space:{name:"أسرار الفضاء",position:"100% 0%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  world_cuisine:{name:"مطابخ العالم",position:"0% 50%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  internet_culture:{name:"ترندات ونت",position:"33.333% 50%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  olympics:{name:"أبطال الرياضة",position:"66.666% 50%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  arabic_language:{name:"لغة وأدب",position:"100% 50%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  myths:{name:"أساطير وحكايات",position:"0% 100%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  oceans:{name:"أعماق البحار",position:"33.333% 100%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  architecture:{name:"عمارة ومدن",position:"66.666% 100%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
+  books:{name:"كتب وروايات",position:"100% 100%",art:"vip-card-art-v2.png",size:"400% 300%",vip:true},
 };

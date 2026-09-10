@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, Home, Send, Sparkles } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Home, Send, Sparkles } from "lucide-react";
 import type { ModeId } from "./types";
 import {
   CATEGORIES,
@@ -23,6 +23,11 @@ const MODE_NAMES: Record<ModeId, string> = {
 };
 const ALL_MODES = Object.keys(MODE_NAMES) as ModeId[],
   ALL_CATS = Object.keys(CATEGORIES) as CategoryId[];
+const CATEGORY_SECTIONS:{id:string;title:string;subtitle:string;categories:CategoryId[]}[]=[
+  {id:"essential",title:"أساسيات القعدة",subtitle:"الفئات الأصلية اللي تبدأ بيها أي قعدة",categories:ALL_CATS.slice(0,12)},
+  {id:"vip-one",title:"اختيارات VIP",subtitle:"ترفيه ومعلومات وتحديات متنوعة",categories:ALL_CATS.slice(12,24)},
+  {id:"vip-two",title:"مكتبة VIP الجديدة",subtitle:"12 عالم جديد للهبد والمنافسة",categories:ALL_CATS.slice(24,36)},
+];
 const LOCAL_SAVE_KEY = "alhabeed:local-game:v2";
 const API_BASE=serverUrl.replace(/\/$/u,"");
 interface LocalSave {
@@ -41,6 +46,7 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
     [cats, setCats] = useState<CategoryId[]>(saved?.cats ?? ALL_CATS),
     [roundCount, setRoundCount] = useState(saved?.roundCount ?? 9);
   const [character, setCharacter] = useState(0);
+  const [openSections,setOpenSections]=useState(()=>new Set(CATEGORY_SECTIONS.map(section=>section.id)));
   const [answer, setAnswer] = useState(saved?.answer ?? ""),
     [options, setOptions] = useState<Option[]>(saved?.options ?? []),
     [scores, setScores] = useState(saved?.scores ?? { you: 0, felfel: 0, soso: 0 });
@@ -189,21 +195,26 @@ export function LocalGame({ onExit }: { onExit: () => void }) {
               {Array.from({length:12},(_,i)=><button key={i} type="button" className={character===i?"character-choice active":"character-choice"} aria-label={`شخصية ${i+1}`} aria-pressed={character===i} onClick={()=>setCharacter(i)} style={{backgroundPosition:`${(i%4)*33.333}% ${Math.floor(i/4)*50}%`}} />)}
             </div>
           </div>
-          <div className="category-grid">
-            {ALL_CATS.map((c) => (
-              <button
-                key={c}
-                className={
-                  cats.includes(c) ? "category-card active" : "category-card"
-                }
-                onClick={() => toggle(c, cats, setCats)}
-                aria-pressed={cats.includes(c)}
-              >
-                <CategoryArtwork category={c} />
-                {CATEGORIES[c].vip&&<span className="vip-badge">VIP</span>}
-                <em>{cats.includes(c) ? "✓ متضاف" : "+ ضيف"}</em>
-              </button>
-            ))}
+          <div className="category-library">
+            {CATEGORY_SECTIONS.map(section=>{
+              const isOpen=openSections.has(section.id);
+              const selected=section.categories.filter(category=>cats.includes(category)).length;
+              return <section className="category-section" key={section.id}>
+                <button type="button" className="category-section-toggle" aria-expanded={isOpen} onClick={()=>setOpenSections(current=>{const next=new Set(current);isOpen?next.delete(section.id):next.add(section.id);return next;})}>
+                  <span><b>{section.title}</b><small>{section.subtitle}</small></span>
+                  <span className="section-toggle-meta">{selected}/{section.categories.length}<ChevronDown size={21}/></span>
+                </button>
+                {isOpen&&<div className="category-grid">
+                  {section.categories.map((c) => (
+                    <button key={c} className={cats.includes(c) ? "category-card active" : "category-card"} onClick={() => toggle(c, cats, setCats)} aria-pressed={cats.includes(c)}>
+                      <CategoryArtwork category={c} />
+                      {CATEGORIES[c].vip&&<span className="vip-badge">VIP</span>}
+                      <em>{cats.includes(c) ? "✓ متضاف" : "+ ضيف"}</em>
+                    </button>
+                  ))}
+                </div>}
+              </section>;
+            })}
           </div>
           <div className="setup-section">
             <h3>طريقة اللعب</h3>

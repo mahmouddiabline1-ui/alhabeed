@@ -22,7 +22,16 @@
 .character-choice { aspect-ratio: 1; min-width: 0; border: 2px solid transparent; border-radius: 14px; background: #d9f4ff url('/character-sprite-v1.png') no-repeat; background-size: 400% 300%; box-shadow: 0 2px 0 #101f4920; transition: transform 180ms var(--ease-out), border-color 180ms, box-shadow 180ms; }
 .character-choice:hover { transform: translateY(-2px); }
 .character-choice.active { border-color: var(--orange); box-shadow: 0 0 0 3px #fffdf8, 0 0 0 5px var(--orange), 0 4px 0 #101f4920; }
-.category-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.category-library { display: grid; gap: 22px; }
+.category-section { padding: 14px; border: 1px solid #101f4920; border-radius: 22px; background: #ffffff82; box-shadow: 0 10px 30px #101f4908; }
+.category-section-toggle { width: 100%; min-height: 66px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 0; border-radius: 15px; background: var(--navy); color: #fff; text-align: right; }
+.category-section-toggle > span:first-child { display: grid; gap: 3px; }
+.category-section-toggle b { font-size: clamp(16px,2vw,21px); }
+.category-section-toggle small { color: #ffffffb8; font-size: 11px; font-weight: 700; }
+.section-toggle-meta { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; color: var(--yellow); font-size: 12px; font-weight: 900; }
+.category-section-toggle svg { transition: transform 220ms ease; }
+.category-section-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.category-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding-top: 16px; }
 .category-card { position: relative; width: 100%; min-width: 0; aspect-ratio: 4 / 5; padding: 0; overflow: hidden; text-align: right; border: 2px solid #fff; border-radius: 20px; background: var(--navy); color: #fff; isolation: isolate; box-shadow: 0 2px 4px #101f4910, 0 8px 20px #101f4910; }
 .category-card i, .question-art { display: block; background-image: url('/category-art-v1.png'); background-size: 300% 200%; background-repeat: no-repeat; }
 .category-artwork { display:block; width:100%; height:100%; object-fit:cover; }

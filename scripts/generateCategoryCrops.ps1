@@ -24,7 +24,19 @@ $cards = @(
   @{ Id='ramadan'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=0; Row=2 },
   @{ Id='celebrities'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=1; Row=2 },
   @{ Id='strange_animals'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=2; Row=2 },
-  @{ Id='travel'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=3; Row=2 }
+  @{ Id='travel'; Source='vip-card-art-v1.png'; Columns=4; Rows=3; Column=3; Row=2 },
+  @{ Id='egyptian_cinema'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=0; Row=0 },
+  @{ Id='arabic_music'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=1; Row=0 },
+  @{ Id='ancient_civilizations'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=2; Row=0 },
+  @{ Id='space'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=3; Row=0 },
+  @{ Id='world_cuisine'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=0; Row=1 },
+  @{ Id='internet_culture'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=1; Row=1 },
+  @{ Id='olympics'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=2; Row=1 },
+  @{ Id='arabic_language'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=3; Row=1 },
+  @{ Id='myths'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=0; Row=2 },
+  @{ Id='oceans'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=1; Row=2 },
+  @{ Id='architecture'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=2; Row=2 },
+  @{ Id='books'; Source='vip-card-art-v2.png'; Columns=4; Rows=3; Column=3; Row=2 }
 )
 
 $publicDir = Join-Path $PSScriptRoot '..\client\public'

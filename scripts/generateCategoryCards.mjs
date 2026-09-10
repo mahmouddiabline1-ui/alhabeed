@@ -25,6 +25,18 @@ const cards = [
   ["celebrities", "مشاهير وسوشيال", "../vip-card-art-v1.png", 4, 3, 1, 2],
   ["strange_animals", "حيوانات عجيبة", "../vip-card-art-v1.png", 4, 3, 2, 2],
   ["travel", "سفر ومغامرات", "../vip-card-art-v1.png", 4, 3, 3, 2],
+  ["egyptian_cinema", "سينما مصرية", "../vip-card-art-v2.png", 4, 3, 0, 0],
+  ["arabic_music", "مزيكا عربية", "../vip-card-art-v2.png", 4, 3, 1, 0],
+  ["ancient_civilizations", "حضارات قديمة", "../vip-card-art-v2.png", 4, 3, 2, 0],
+  ["space", "أسرار الفضاء", "../vip-card-art-v2.png", 4, 3, 3, 0],
+  ["world_cuisine", "مطابخ العالم", "../vip-card-art-v2.png", 4, 3, 0, 1],
+  ["internet_culture", "ترندات ونت", "../vip-card-art-v2.png", 4, 3, 1, 1],
+  ["olympics", "أبطال الرياضة", "../vip-card-art-v2.png", 4, 3, 2, 1],
+  ["arabic_language", "لغة وأدب", "../vip-card-art-v2.png", 4, 3, 3, 1],
+  ["myths", "أساطير وحكايات", "../vip-card-art-v2.png", 4, 3, 0, 2],
+  ["oceans", "أعماق البحار", "../vip-card-art-v2.png", 4, 3, 1, 2],
+  ["architecture", "عمارة ومدن", "../vip-card-art-v2.png", 4, 3, 2, 2],
+  ["books", "كتب وروايات", "../vip-card-art-v2.png", 4, 3, 3, 2],
 ];
 
 const titleLayout = {
@@ -32,6 +44,10 @@ const titleLayout = {
   world_football:{y:355,size:82}, flags:{y:175,size:86}, riddles:{y:300,size:86},
   medicine:{x:215,y:165,size:72}, inventions:{y:565,size:68}, ramadan:{y:175,size:88},
   celebrities:{y:350,size:78}, strange_animals:{x:370,y:180,size:78}, travel:{x:210,y:180,size:82},
+  egyptian_cinema:{x:360,y:180,size:82}, arabic_music:{y:370,size:84}, ancient_civilizations:{x:205,y:175,size:76},
+  space:{y:560,size:82}, world_cuisine:{x:375,y:170,size:78}, internet_culture:{y:350,size:84},
+  olympics:{y:185,size:78}, arabic_language:{y:365,size:88}, myths:{x:380,y:175,size:76},
+  oceans:{y:365,size:82}, architecture:{x:205,y:175,size:80}, books:{y:365,size:84},
 };
 
 const destination = new URL("../client/public/cards/", import.meta.url);
