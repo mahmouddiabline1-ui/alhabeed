@@ -142,6 +142,7 @@ app.post("/api/auth/refresh",{config:{rateLimit:{max:10,timeWindow:"10 minutes"}
 app.get("/api/me",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await identityService.me(bearerUser(request.headers.authorization))}));
 app.patch("/api/me",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await identityService.update(bearerUser(request.headers.authorization),request.body)}));
 app.get("/api/me/game-history",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await service.history(bearerUser(request.headers.authorization))}));
+app.get("/api/me/stats",async(request,reply)=>reply.header("Cache-Control","no-store").send({data:await service.stats(bearerUser(request.headers.authorization))}));
 app.post("/api/auth/logout-all",async(request,reply)=>{
   await identityService.logoutAll(bearerUser(request.headers.authorization));
   return reply.header("Set-Cookie",refreshCookie("",0)).status(204).send();

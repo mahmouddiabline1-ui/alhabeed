@@ -19,7 +19,16 @@ export interface GameHistoryItem extends Omit<FinishedGameResult,"players"> {
   playerCount:number;
 }
 
+export interface PlayerGameStats {
+  gamesPlayed:number;
+  wins:number;
+  totalScore:number;
+  bestScore:number;
+  averageRank:number|null;
+}
+
 export interface GameResultRepository {
   saveOnce(result:FinishedGameResult):Promise<boolean>;
   historyForUser(userId:string,limit:number):Promise<GameHistoryItem[]>;
+  statsForUser(userId:string):Promise<PlayerGameStats>;
 }

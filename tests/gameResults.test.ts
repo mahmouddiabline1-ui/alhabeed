@@ -46,6 +46,36 @@ test("finished match is persisted exactly once and history is owned, ordered and
   assert.equal((await service.history("33333333-3333-4333-8333-333333333333")).length,0);
 });
 
+test("profile stats are empty for an account with no persisted results",async()=>{
+  const results=new InMemoryGameResultRepository();
+  const service=new GameService(new GameEngine(new QuestionBank([])),new InMemoryRoomRepository(),results,"content-v1");
+  assert.deepEqual(await service.stats("33333333-3333-4333-8333-333333333333"),{
+    gamesPlayed:0,wins:0,totalScore:0,bestScore:0,averageRank:null,
+  });
+});
+
+test("profile stats use only the authenticated account results and count tied first places as wins",async()=>{
+  const results=new InMemoryGameResultRepository();
+  const service=new GameService(new GameEngine(new QuestionBank([])),new InMemoryRoomRepository(),results,"content-v1");
+  await results.saveOnce(resultFromFinishedRoom(finishedRoom(),"content-v1",100));
+  const second=finishedRoom();
+  second.code="XYZ789";
+  second.players.p1!.score=3;
+  second.players.p2!.score=9;
+  second.players.p3!.score=6;
+  await results.saveOnce(resultFromFinishedRoom(second,"content-v1",200));
+
+  assert.deepEqual(await service.stats("11111111-1111-4111-8111-111111111111"),{
+    gamesPlayed:2,wins:1,totalScore:8,bestScore:5,averageRank:2,
+  });
+  assert.deepEqual(await service.stats("22222222-2222-4222-8222-222222222222"),{
+    gamesPlayed:2,wins:2,totalScore:14,bestScore:9,averageRank:1,
+  });
+  assert.deepEqual(await service.stats("33333333-3333-4333-8333-333333333333"),{
+    gamesPlayed:0,wins:0,totalScore:0,bestScore:0,averageRank:null,
+  });
+});
+
 test("account links are private and an established player ownership cannot be replaced",()=>{
   const engine=new GameEngine(new QuestionBank([]),()=>1,()=>0);
   const room=engine.createRoom({id:"p1",name:"أحمد",userId:"11111111-1111-4111-8111-111111111111"});

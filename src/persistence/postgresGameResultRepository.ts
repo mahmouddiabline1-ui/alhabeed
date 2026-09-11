@@ -1,5 +1,5 @@
 import type { Sql } from "postgres";
-import type { FinishedGameResult, GameHistoryItem, GameResultRepository } from "../results/types.js";
+import type { FinishedGameResult, GameHistoryItem, GameResultRepository, PlayerGameStats } from "../results/types.js";
 
 export class PostgresGameResultRepository implements GameResultRepository {
   constructor(private readonly sql:Sql){}
@@ -26,5 +26,29 @@ export class PostgresGameResultRepository implements GameResultRepository {
       where p.user_id=${userId}::uuid order by g.finished_at desc,g.id desc limit ${limit}
     `;
     return rows.map(row=>({roomCode:String(row.room_code).trim(),contentVersion:row.content_version,finishedAt:new Date(row.finished_at).getTime(),settings:row.result.settings,player:{playerId:row.player_id,userId,displayName:row.display_name,score:row.score,rank:row.rank},playerCount:row.player_count}));
+  }
+  async statsForUser(userId:string):Promise<PlayerGameStats>{
+    const [row]=await this.sql<{
+      games_played:number;
+      wins:number;
+      total_score:number;
+      best_score:number;
+      average_rank:string|null;
+    }[]>`
+      select count(*)::integer as games_played,
+        count(*) filter (where rank=1)::integer as wins,
+        coalesce(sum(score),0)::integer as total_score,
+        coalesce(max(score),0)::integer as best_score,
+        avg(rank) as average_rank
+      from game_result_players
+      where user_id=${userId}::uuid
+    `;
+    return {
+      gamesPlayed:row?.games_played??0,
+      wins:row?.wins??0,
+      totalScore:row?.total_score??0,
+      bestScore:row?.best_score??0,
+      averageRank:row?.average_rank===null||row?.average_rank===undefined?null:Number(row.average_rank),
+    };
   }
 }

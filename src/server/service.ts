@@ -13,6 +13,7 @@ export class GameService {
   async persist(room: RoomState): Promise<RoomState> { await this.repository.save(room); if(room.phase==="finished"&&this.results)await this.results.saveOnce(resultFromFinishedRoom(room,this.contentVersion)); return room; }
   async create(name: string, settings: Partial<RoomSettings> = {},userId?:string) { const p = this.newPlayer(name,userId); return { player: p, room: await this.persist(this.engine.createRoom(p, settings)) }; }
   async history(userId:string){return this.results?.historyForUser(userId,20)??[];}
+  async stats(userId:string){return this.results?.statsForUser(userId)??{gamesPlayed:0,wins:0,totalScore:0,bestScore:0,averageRank:null};}
   async tickAll(): Promise<RoomState[]> {
     const changed: RoomState[] = [];
     for (const old of this.engine.listRooms()) {

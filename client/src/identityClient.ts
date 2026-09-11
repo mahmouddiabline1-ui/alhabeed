@@ -4,6 +4,7 @@ export const CHARACTER_IDS = Array.from({length:12},(_,index)=>`character-${inde
 export type CharacterId = `character-${1|2|3|4|5|6|7|8|9|10|11|12}`;
 export interface Profile { userId:string; displayName:string; selectedCharacterId:CharacterId; locale:string; createdAt:number; updatedAt:number }
 export interface GameHistoryItem { roomCode:string; finishedAt:number; playerCount:number; player:{score:number;rank:number}; settings:{totalRounds:number;modes:string[];packageIds:string[]} }
+export interface ProfileStats { gamesPlayed:number; wins:number; totalScore:number; bestScore:number; averageRank:number|null }
 
 const API=serverUrl.replace(/\/$/u,"");
 const TOKEN_KEY="alhabeed:access-token";
@@ -53,6 +54,9 @@ export async function updateProfile(displayName:string,selectedCharacterId:Chara
 }
 export async function getGameHistory(){
   return authorized("/api/me/game-history") as Promise<GameHistoryItem[]>;
+}
+export async function getProfileStats(){
+  return authorized("/api/me/stats") as Promise<ProfileStats>;
 }
 export async function logoutAll(){
   try { await authorized("/api/auth/logout-all",{method:"POST"},false); } finally { clearToken(); }

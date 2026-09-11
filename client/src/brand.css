@@ -43,6 +43,13 @@
 .profile-character.active { border-color: var(--orange); background: #fff4e9; box-shadow: 0 0 0 2px #e8551e22; }
 .profile-form .primary { width: 100%; }.profile-logout { width: 100%; min-height: 44px; margin-top: 12px; border: 0; background: transparent; color: #982d19; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; font-weight: 800; }
 .profile-history { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.profile-stats { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.stats-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 8px; }
+.stat-card { grid-column: span 2; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 11px 9px; border: 1px solid #dfe3ed; border-radius: 14px; background: linear-gradient(145deg,#fff 20%,#f6f7fb); box-shadow: 0 5px 14px #101f4909; }
+.stat-card:nth-child(4),.stat-card:nth-child(5) { grid-column: span 3; }
+.stat-icon { width: 32px; height: 32px; display: grid; place-items: center; flex: none; border-radius: 10px; background: #fff1cb; color: var(--orange-ink); }.stat-icon svg { width: 16px; height: 16px; }
+.stat-card > div { min-width: 0; display: grid; gap: 1px; }.stat-card strong { color: var(--navy); font-size: 17px; line-height: 1.1; }.stat-card small { overflow: hidden; color: var(--muted); font-size: 8px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.stats-loading { min-height: 74px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; background: #f0f2f8; color: var(--muted); font-size: 11px; }
 .profile-history-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
 .profile-history-head h3 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 14px; }.profile-history-head h3 svg { width: 17px; }
 .profile-history-head > span { color: var(--muted); font-size: 9px; font-weight: 700; }
@@ -121,7 +128,7 @@
 @media (min-width: 980px) { .category-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; } }
 @media (min-width: 1220px) { .category-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @media (max-width: 430px) {
-  .profile-entry { top: max(10px, env(safe-area-inset-top)); right: 10px; }.profile-entry small { display: none; }.profile-sheet { padding: 20px; border-radius: 22px; }.profile-character-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .profile-entry { top: max(10px, env(safe-area-inset-top)); right: 10px; }.profile-entry small { display: none; }.profile-sheet { padding: 20px; border-radius: 22px; }.profile-character-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }.stats-grid { gap: 6px; }.stat-card { grid-column: span 3; }.stat-card:nth-child(5) { grid-column: 1 / -1; }.stat-card strong { font-size: 16px; }
   .local-setup { padding: 32px 20px 144px; } .category-grid { gap: 16px; }
   .category-card { border-radius: 16px; }
   .category-card em { top: 8px; right: 8px; font-size: 9px; padding: 5px 8px; }
