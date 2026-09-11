@@ -8,6 +8,8 @@ import { CATEGORIES, type CategoryId } from "./catalog";
 import { serverUrl } from "./serverUrl";
 import { createProfile, currentAccessToken, logoutAll, restoreProfile, updateProfile, type CharacterId, type Profile } from "./identityClient";
 import { ProfilePanel } from "./ProfilePanel";
+import { BottomNav, type AppScreen } from "./BottomNav";
+import { PortalPage } from "./PortalPage";
 
 const socket = io(serverUrl || undefined, { autoConnect: false });
 const MODE_NAMES: Record<ModeId,string> = { habbedha: "هَبِّدها", true_or_bluff: "صح ولا هبد؟", complete_bluff: "كمّل الهبدة" };
@@ -16,7 +18,7 @@ const DEFAULTS = { totalRounds: 9, answerSeconds: 45, voteSeconds: 25, revealSec
 export function App() {
   const [room, setRoom] = useState<Room | null>(null);
   const [session, setSession] = useState<Session | null>(() => readSession());
-  const [screen, setScreenState] = useState<"home"|"create"|"join"|"local">(screenFromUrl);
+  const [screen, setScreenState] = useState<AppScreen>(screenFromUrl);
   const [name, setName] = useState(session?.name ?? "");
   const [code, setCode] = useState(new URLSearchParams(location.search).get("room") ?? "");
   const [answer, setAnswer] = useState("");
@@ -71,7 +73,7 @@ export function App() {
     return () => { removeEventListener("popstate", sync); removeEventListener("hashchange", sync); };
   }, []);
 
-  const setScreen = (next:"home"|"create"|"join"|"local") => {
+  const setScreen = (next:AppScreen) => {
     setScreenState(next);
     const hash = next === "home" ? "#/" : `#/${next}`;
     history.pushState({ screen: next }, "", hash);
@@ -102,8 +104,9 @@ export function App() {
   const saveProfile=async(displayName:string,character:CharacterId)=>{setProfileBusy(true);setProfileError("");try{const value=profile?await updateProfile(displayName,character):await createProfile(displayName,character);setProfile(value);setName(value.displayName);refreshSocketIdentity();setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"حصلت مشكلة في حفظ البروفايل");}finally{setProfileBusy(false);}};
   const signOut=async()=>{setProfileBusy(true);setProfileError("");try{await logoutAll();setProfile(null);refreshSocketIdentity();setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"تعذّر تسجيل الخروج");}finally{setProfileBusy(false);}};
   const profilePanel=<ProfilePanel open={profileOpen} profile={profile} busy={profileBusy} error={profileError} onClose={()=>{setProfileOpen(false);setProfileError("");}} onSave={saveProfile} onLogout={signOut}/>;
-  if (screen === "local") return <><LocalGame onExit={()=>setScreen("home")} />{profilePanel}</>;
-  if (!room || !session || !me) return <><Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />{profilePanel}</>;
+  const navigation=<BottomNav screen={screen} onNavigate={setScreen} onProfile={()=>setProfileOpen(true)}/>;
+  if (screen === "local") return <div className="app-with-nav"><LocalGame onExit={()=>setScreen("home")} />{navigation}{profilePanel}</div>;
+  if (!room || !session || !me) return <div className="app-with-nav">{screen==="news"||screen==="notifications"?<PortalPage kind={screen}/>:<Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />}{navigation}{profilePanel}</div>;
   return <main className="app-shell">
     <TopBar room={room} me={me} remaining={remaining} />
     {error && <div className="toast">{error}</div>}
@@ -211,9 +214,9 @@ function Finished({room,session}:any) {
 
 function saveAndEnter(result:any,name:string,setSession:any,setRoom:any){const s={code:result.room.code,playerId:result.player.id,name,token:result.reconnectToken};localStorage.setItem("alhabeed:session",JSON.stringify(s));setSession(s);setRoom(result.room);history.replaceState({screen:"room"},"",`?room=${s.code}#/room/${s.code}`)}
 function readSession():Session|null{try{return JSON.parse(localStorage.getItem("alhabeed:session")||"null")}catch{return null}}
-function screenFromUrl():"home"|"create"|"join"|"local" {
+function screenFromUrl():AppScreen {
   const route = location.hash.replace(/^#\/?/, "").split("/")[0];
-  if (route === "create" || route === "join" || route === "local") return route;
+  if (route === "create" || route === "join" || route === "local" || route === "news" || route === "notifications") return route;
   return new URLSearchParams(location.search).get("local") === "1" ? "local" : "home";
 }
 function arabicNumber(n:number){return String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[Number(d)])}

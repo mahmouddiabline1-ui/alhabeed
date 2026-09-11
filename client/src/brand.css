@@ -3,6 +3,17 @@
   margin: 0 auto; mix-blend-mode: multiply;
 }
 .brand-card .slogan { margin: 8px 0 32px; }
+.app-with-nav { min-height: 100svh; padding-bottom: 96px; }
+.bottom-nav { position: fixed; z-index: 80; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); left: 12px; width: min(calc(100% - 24px), 760px); min-height: 72px; margin-inline: auto; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; padding: 8px; border: 1px solid #ffffff24; border-radius: 24px; background: #101f49f2; box-shadow: 0 16px 48px #07102752; backdrop-filter: blur(16px); }
+.bottom-nav-item { min-width: 0; min-height: 56px; display: grid; place-items: center; align-content: center; gap: 4px; padding: 4px; border: 0; border-radius: 16px; background: transparent; color: #aeb9d5; transition: color 180ms ease,background 180ms ease,transform 180ms ease; }
+.bottom-nav-item svg { width: 21px; height: 21px; stroke-width: 2.4; }.bottom-nav-item span { font-size: 10px; font-weight: 800; }
+.bottom-nav-item.active { background: var(--yellow); color: var(--navy); box-shadow: 0 4px 0 #bc8413; }.bottom-nav-item:active { transform: translateY(2px); }
+.bottom-nav-item:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.app-with-nav .local-start-bar { bottom: max(100px, calc(env(safe-area-inset-bottom) + 88px)); }
+.portal-page { min-height: calc(100svh - 96px); max-width: 920px; margin-inline: auto; padding: 64px 24px 120px; }
+.portal-heading { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }.portal-heading-icon { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 16px; background: var(--navy); color: var(--yellow); box-shadow: 0 6px 0 #07102720; }
+.portal-heading-icon svg { width: 28px; height: 28px; }.portal-heading span { color: var(--orange-ink); font-size: 12px; font-weight: 900; }.portal-heading h1 { margin: 4px 0 0; color: var(--navy); font-size: clamp(32px,6vw,48px); }
+.portal-empty { min-height: 320px; display: grid; place-items: center; align-content: center; gap: 12px; padding: 32px; border: 1px solid var(--line); border-radius: 24px; background: var(--paper); text-align: center; box-shadow: 0 12px 32px #101f490a; }.portal-empty>svg { width: 48px; height: 48px; padding: 12px; border-radius: 16px; background: #edf0f8; color: var(--navy); }.portal-empty h2 { margin: 4px 0 0; color: var(--navy); font-size: 24px; }.portal-empty p { max-width: 42ch; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.8; }
 .local-button { border: 1px solid #debbab; background: #fff4e9; color: var(--orange-ink); box-shadow: 0 3px 0 #e9d8c9; }
 .icon-button { border: 1px solid #ffffff15; background: #ffffff0d; color: #fff; border-radius: 12px; padding: 12px; min-width: 44px; min-height: 44px; display: grid; place-items: center; }
 .back-with-label { display: flex; align-items: center; gap: 4px; width: auto; font-weight: 700; }
@@ -128,6 +139,7 @@
 @media (min-width: 980px) { .category-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; } }
 @media (min-width: 1220px) { .category-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @media (max-width: 430px) {
+  .bottom-nav { right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); left: 8px; width: calc(100% - 16px); min-height: 64px; padding: 6px; border-radius: 20px; }.bottom-nav-item { min-height: 52px; border-radius: 14px; }.bottom-nav-item svg { width: 19px; height: 19px; }.bottom-nav-item span { font-size: 9px; }.portal-page { padding: 40px 20px 112px; }.portal-heading { margin-bottom: 24px; }.portal-empty { min-height: 280px; padding: 24px; }
   .profile-entry { top: max(10px, env(safe-area-inset-top)); right: 10px; }.profile-entry small { display: none; }.profile-sheet { padding: 20px; border-radius: 22px; }.profile-character-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }.stats-grid { gap: 6px; }.stat-card { grid-column: span 3; }.stat-card:nth-child(5) { grid-column: 1 / -1; }.stat-card strong { font-size: 16px; }
   .local-setup { padding: 32px 20px 144px; } .category-grid { gap: 16px; }
   .category-card { border-radius: 16px; }
