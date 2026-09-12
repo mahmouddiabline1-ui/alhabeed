@@ -1,0 +1,32 @@
+[
+  {
+    "id": "district-race-cover",
+    "path": "client/public/games/district-race-cover.svg",
+    "creatorOrMethod": "AI-assisted code illustration authored by Codex subagent (gpt-5.6-luna) as original SVG geometry",
+    "sourceOrPrompt": "Task brief: create an original lightweight cover for an Egyptian social race-board game named District Race / سباق اللِّمّة; avoid Kalak, Yalla Ludo, Ludo board trade dress, logos, layouts, and third-party assets",
+    "license": "owned",
+    "createdAt": "2026-09-13T00:00:00.000Z",
+    "sha256": "e5006c74bf7757b65373a553a03a22fb3324dab91a52265ba65a28a9c72f4a09",
+    "productionUse": true
+  },
+  {
+    "id": "chess-cover",
+    "path": "client/public/games/chess-cover.svg",
+    "creatorOrMethod": "AI-assisted code illustration authored by Codex subagent (gpt-5.6-luna) as original SVG geometry",
+    "sourceOrPrompt": "Task brief: create an original lightweight abstract chess cover for the AlHabeed game hub; use only new geometric SVG forms and no third-party assets",
+    "license": "owned",
+    "createdAt": "2026-09-13T00:00:00.000Z",
+    "sha256": "bf7947b6dc2c5d6875fed00c227f392f088762316efd73d99aeca722039eb1af",
+    "productionUse": true
+  },
+  {
+    "id": "shedding-cover",
+    "path": "client/public/games/shedding-cover.svg",
+    "creatorOrMethod": "AI-assisted code illustration authored by Codex subagent (gpt-5.6-luna) as original SVG geometry",
+    "sourceOrPrompt": "Task brief: create an original lightweight cover for a shedding-card game named ورق اللِّمّة; avoid UNO name, assets, logo, card faces, color system, and protected trade dress",
+    "license": "owned",
+    "createdAt": "2026-09-13T00:00:00.000Z",
+    "sha256": "752d55d23619813acb3f7453bafc8f42449792413b6ece4fe563aabeb9890d21",
+    "productionUse": true
+  }
+]
