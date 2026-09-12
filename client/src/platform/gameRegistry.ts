@@ -1,4 +1,7 @@
-export type GameId = "alhabeed" | "district-race" | "chess" | "shedding";
+import { GAME_IDS, type GameId } from "@alhabeed/contracts/games";
+
+export { GAME_IDS } from "@alhabeed/contracts/games";
+export type { GameId } from "@alhabeed/contracts/games";
 
 export type ReleaseStatus = "playable" | "coming-soon";
 
@@ -69,6 +72,10 @@ export const GAME_REGISTRY: readonly GameDefinition[] = [
     coverAssetId: "shedding-cover",
   },
 ];
+
+if (GAME_REGISTRY.length !== GAME_IDS.length || GAME_REGISTRY.some((game, index) => game.id !== GAME_IDS[index])) {
+  throw new Error("Game registry is out of sync with shared game contracts");
+}
 
 export function gameById(id: GameId): GameDefinition {
   const game = GAME_REGISTRY.find((entry) => entry.id === id);

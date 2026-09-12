@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { LIMITS } from "../core/config.js";
 import { GameError } from "../core/errors.js";
+export { GAME_IDS, PROTOCOL_VERSION } from "@alhabeed/contracts";
+export type { GameId, RoomCommandEnvelope, RoomEnvelope, RoomMember } from "@alhabeed/contracts";
 
 const forbiddenText = /[\u0000-\u001F\u007F\u202A-\u202E\u2066-\u2069]/u;
 const safeText = (min:number,max:number,label:string) => z.string().trim().min(min).max(max)

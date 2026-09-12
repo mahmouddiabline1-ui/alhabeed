@@ -26,9 +26,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/package-lock.json
-      - run: npm ci --prefix client
-      - run: npm --prefix client run build
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build:client
         env:
           VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
       - uses: actions/configure-pages@v5

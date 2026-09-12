@@ -2,11 +2,15 @@
   "name": "alhabeed-game",
   "version": "0.1.0",
   "private": true,
+  "workspaces": ["client", "packages/*"],
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:all": "npm run build && npm --prefix client run build",
-    "test": "npm run build && node --test dist/tests/*.test.js",
+    "build:contracts": "npm --workspace @alhabeed/contracts run build",
+    "build:server": "npm run build:contracts && npm run build",
+    "build:client": "npm run build:contracts && npm --workspace alhabeed-client run build",
+    "build:all": "npm run build:contracts && npm run build:server && npm run build:client",
+    "test": "npm run build:contracts && npm run build && node --test dist/tests/*.test.js",
     "check": "npm test && npm run assets:verify && npm --prefix client run build",
     "assets:verify": "tsx scripts/verifyAssetManifest.ts",
     "migrate": "npm run build && node dist/src/persistence/migrate.js",
@@ -21,6 +25,7 @@
     "start": "node dist/src/server/index.js"
   },
   "dependencies": {
+    "@alhabeed/contracts": "file:packages/contracts",
     "@fastify/cors": "^11.1.0",
     "@fastify/rate-limit": "^11.2.0",
     "@fastify/static": "^10.1.3",
