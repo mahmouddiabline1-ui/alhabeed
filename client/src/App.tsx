@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Check, Copy, Crown, LogIn, Play, RotateCcw, Send, Settings2, Sparkles, UserRound, Users } from "lucide-react";
 import { io } from "socket.io-client";
 import type { ModeId, Player, Room, Session } from "./types";
@@ -8,19 +9,28 @@ import { CATEGORIES, type CategoryId } from "./catalog";
 import { serverUrl } from "./serverUrl";
 import { createProfile, currentAccessToken, logoutAll, restoreProfile, updateProfile, type CharacterId, type Profile } from "./identityClient";
 import { ProfilePanel } from "./ProfilePanel";
-import { BottomNav, type AppScreen } from "./BottomNav";
+import type { AppScreen } from "./BottomNav";
 import { PortalPage } from "./PortalPage";
+import { AppShell } from "./platform/AppShell";
+import { AppRoutes } from "./platform/routes";
+import { roomInviteUrl } from "./platform/inviteUrl";
 
 const socket = io(serverUrl || undefined, { autoConnect: false });
 const MODE_NAMES: Record<ModeId,string> = { habbedha: "هَبِّدها", true_or_bluff: "صح ولا هبد؟", complete_bluff: "كمّل الهبدة" };
 const DEFAULTS = { totalRounds: 9, answerSeconds: 45, voteSeconds: 25, revealSeconds: 10, packageIds: DEFAULT_CATEGORY_IDS };
+const roomCodeFromLocation = (pathname: string, search: string) => {
+  const routeCode = pathname.match(/^\/room\/([A-Z0-9]{6})$/u)?.[1];
+  return routeCode ?? new URLSearchParams(search).get("room") ?? "";
+};
 
 export function App() {
+  const routerLocation = useLocation();
+  const navigate = useNavigate();
+  const legacyRoomRef = useRef(new URLSearchParams(window.location.search).get("room") ?? "");
   const [room, setRoom] = useState<Room | null>(null);
   const [session, setSession] = useState<Session | null>(() => readSession());
-  const [screen, setScreenState] = useState<AppScreen>(screenFromUrl);
   const [name, setName] = useState(session?.name ?? "");
-  const [code, setCode] = useState(new URLSearchParams(location.search).get("room") ?? "");
+  const [code, setCode] = useState(() => roomCodeFromLocation(routerLocation.pathname, routerLocation.search));
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
   const [availableCategories, setAvailableCategories] = useState<CategoryId[]>(DEFAULT_CATEGORY_IDS);
@@ -33,6 +43,7 @@ export function App() {
 
   useEffect(() => {
     let active=true;
+    const requestedRoom = roomCodeFromLocation(routerLocation.pathname, routerLocation.search) || legacyRoomRef.current;
     const onState = (state: Room) => { setRoom(state); setError(""); };
     const onError = (e: {message:string}) => setError(arabicError(e.message));
     socket.on("room:state", onState); socket.on("game:error", onError);
@@ -40,8 +51,7 @@ export function App() {
       if(!active)return;
       setProfile(value);if(value)setName(current=>current||value.displayName);
       socket.auth={accessToken:currentAccessToken()};socket.connect();
-      const wantsRoom = location.hash.startsWith("#/room") || new URLSearchParams(location.search).has("room");
-      if (session?.token && wantsRoom) socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => {
+      if (session?.token && requestedRoom === session.code) socket.emit("room:reconnect", {code:session.code,token:session.token}, (state: Room) => {
           setRoom(state);
           setSettings({...state.settings,packageIds:state.settings.packageIds.filter((id):id is CategoryId=>id in CATEGORIES)});
         });
@@ -68,15 +78,12 @@ export function App() {
 
   useEffect(() => { setAnswer(""); }, [room?.round?.number, room?.round?.phase]);
   useEffect(() => {
-    const sync = () => setScreenState(screenFromUrl());
-    addEventListener("popstate", sync); addEventListener("hashchange", sync);
-    return () => { removeEventListener("popstate", sync); removeEventListener("hashchange", sync); };
-  }, []);
-
+    const requestedRoom = roomCodeFromLocation(routerLocation.pathname, routerLocation.search);
+    if (requestedRoom) setCode(requestedRoom);
+  }, [routerLocation.pathname, routerLocation.search]);
   const setScreen = (next:AppScreen) => {
-    setScreenState(next);
-    const hash = next === "home" ? "#/" : `#/${next}`;
-    history.pushState({ screen: next }, "", hash);
+    const routes:Record<AppScreen,string> = { home:"/", create:"/games/alhabeed/create", join:"/games/alhabeed/join", local:"/games/alhabeed/local", news:"/news", notifications:"/notifications" };
+    navigate(routes[next]);
   };
 
   const me = session && room ? room.players[session.playerId] : null;
@@ -87,11 +94,11 @@ export function App() {
     e.preventDefault();
     if (!settings.packageIds.length) { setError("اختار فئة واحدة على الأقل"); return; }
     setError("");
-    socket.emit("room:create", { name, settings }, (result: {player:{id:string},room:Room}) => saveAndEnter(result, name, setSession, setRoom));
+    socket.emit("room:create", { name, settings }, (result: {player:{id:string},room:Room}) => saveAndEnter(result, name, setSession, setRoom, navigate));
   };
   const join = (e: FormEvent) => {
     e.preventDefault(); setError("");
-    socket.emit("room:join", { name, code: code.trim().toUpperCase() }, (result: {player:{id:string},room:Room}) => saveAndEnter(result, name, setSession, setRoom));
+    socket.emit("room:join", { name, code: code.trim().toUpperCase() }, (result: {player:{id:string},room:Room}) => saveAndEnter(result, name, setSession, setRoom, navigate));
   };
   const emit = (event: string, payload: object, expectedVersion = room?.version) => new Promise<Room>((resolve) => {
     socket.emit(event, { ...payload, commandId: crypto.randomUUID(), expectedVersion }, (state:Room) => {
@@ -104,10 +111,9 @@ export function App() {
   const saveProfile=async(displayName:string,character:CharacterId)=>{setProfileBusy(true);setProfileError("");try{const value=profile?await updateProfile(displayName,character):await createProfile(displayName,character);setProfile(value);setName(value.displayName);refreshSocketIdentity();setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"حصلت مشكلة في حفظ البروفايل");}finally{setProfileBusy(false);}};
   const signOut=async()=>{setProfileBusy(true);setProfileError("");try{await logoutAll();setProfile(null);refreshSocketIdentity();setProfileOpen(false);}catch(reason){setProfileError(reason instanceof Error?arabicIdentityError(reason.message):"تعذّر تسجيل الخروج");}finally{setProfileBusy(false);}};
   const profilePanel=<ProfilePanel open={profileOpen} profile={profile} busy={profileBusy} error={profileError} onClose={()=>{setProfileOpen(false);setProfileError("");}} onSave={saveProfile} onLogout={signOut}/>;
-  const navigation=<BottomNav screen={screen} onNavigate={setScreen} onProfile={()=>setProfileOpen(true)}/>;
-  if (screen === "local") return <div className="app-with-nav"><LocalGame onExit={()=>setScreen("home")} />{navigation}{profilePanel}</div>;
-  if (!room || !session || !me) return <div className="app-with-nav">{screen==="news"||screen==="notifications"?<PortalPage kind={screen}/>:<Home key={screen} screen={screen} setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />}{navigation}{profilePanel}</div>;
-  return <main className="app-shell">
+  const shell = (children:React.ReactNode) => <AppShell profilePanel={profilePanel} onProfile={()=>setProfileOpen(true)}>{children}</AppShell>;
+  const home = <Home screen="home" setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />;
+  const roomView = !room || !session || !me ? shell(home) : <main className="app-shell">
     <TopBar room={room} me={me} remaining={remaining} />
     {error && <div className="toast">{error}</div>}
     {room.phase === "lobby" && <Lobby room={room} session={session} isHost={isHost} settings={settings} setSettings={setSettings} availableCategories={availableCategories} emit={emit} />}
@@ -117,6 +123,17 @@ export function App() {
     {room.phase === "finished" && <Finished room={room} session={session} />}
     {profilePanel}
   </main>;
+  return <AppRoutes elements={{
+    hub: shell(home),
+    localAlHabeed: shell(<LocalGame onExit={()=>setScreen("home")} />),
+    createAlHabeed: shell(<Home screen="create" setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />),
+    joinAlHabeed: shell(<Home screen="join" setScreen={setScreen} name={name} setName={setName} code={code} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />),
+    roomAlHabeed: (routeCode) => !room || !session || !me || room.code !== routeCode
+      ? shell(<Home screen="join" setScreen={setScreen} name={name} setName={setName} code={code || routeCode} setCode={setCode} create={create} join={join} settings={settings} setSettings={setSettings} availableCategories={availableCategories} error={error} profile={profile} openProfile={()=>setProfileOpen(true)} />)
+      : roomView,
+    news: shell(<PortalPage kind="news" />),
+    notifications: shell(<PortalPage kind="notifications" />),
+  }} />;
 }
 
 function Home(p: any) {
@@ -166,7 +183,7 @@ function TopBar({room,me,remaining}:{room:Room,me:any,remaining:number}) {
 }
 
 function Lobby({room,session,isHost,settings,setSettings,availableCategories,emit}:any) {
-  const copyInvite = () => navigator.clipboard.writeText(`${location.origin}?room=${room.code}`);
+  const copyInvite = () => navigator.clipboard.writeText(roomInviteUrl(room.code));
   const update = () => emit("room:settings", {code:room.code,patch:settings});
   const start = async () => {
     const updated = await update();
@@ -212,13 +229,8 @@ function Finished({room,session}:any) {
   return <section className="stage finished"><Sparkles className="trophy"/><div className="eyebrow">القعدة خلصت</div><h2>{ranking[0]?.name} كسبها!</h2><div className="ranking">{ranking.map((p,i)=><div className={p.id===session.playerId?"rank me":"rank"} key={p.id}><b>{i+1}</b><span>{p.name}</span><strong>{p.score}</strong></div>)}</div><button className="secondary" onClick={()=>location.reload()}><RotateCcw/> قعدة جديدة</button></section>;
 }
 
-function saveAndEnter(result:any,name:string,setSession:any,setRoom:any){const s={code:result.room.code,playerId:result.player.id,name,token:result.reconnectToken};localStorage.setItem("alhabeed:session",JSON.stringify(s));setSession(s);setRoom(result.room);history.replaceState({screen:"room"},"",`?room=${s.code}#/room/${s.code}`)}
+function saveAndEnter(result:any,name:string,setSession:any,setRoom:any,navigate:(to:string)=>void){const s={code:result.room.code,playerId:result.player.id,name,token:result.reconnectToken};localStorage.setItem("alhabeed:session",JSON.stringify(s));setSession(s);setRoom(result.room);navigate(`/room/${s.code}`)}
 function readSession():Session|null{try{return JSON.parse(localStorage.getItem("alhabeed:session")||"null")}catch{return null}}
-function screenFromUrl():AppScreen {
-  const route = location.hash.replace(/^#\/?/, "").split("/")[0];
-  if (route === "create" || route === "join" || route === "local" || route === "news" || route === "notifications") return route;
-  return new URLSearchParams(location.search).get("local") === "1" ? "local" : "home";
-}
 function arabicNumber(n:number){return String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[Number(d)])}
 function arabicError(message:string){const map:Record<string,string>={"Room not found":"القعدة دي مش موجودة","At least 3 players are required":"لازم ٣ لاعبين على الأقل","Room is full":"القعدة كملت","Player already joined":"أنت موجود بالفعل"};return map[message]??message}
 function characterStyle(id:CharacterId){const index=Number(id.split("-")[1])-1;return {backgroundPosition:`${(index%4)*33.333}% ${Math.floor(index/4)*50}%`};}
